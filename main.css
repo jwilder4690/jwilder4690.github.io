@@ -1,0 +1,17 @@
+body{
+	background:#999;
+	font-family: arial;
+}
+h1{
+	color: #666;	
+}
+
+a {
+	color: cyan;
+}
+
+p{
+	background: #666;
+	color: white;
+	padding: 5px;
+}
