@@ -1,5 +1,13 @@
 function setup() {
-  createCanvas(windowWidth, windowWidth*(9/16));
+  if (width == displayWidth)
+  {
+    resizeCanvas(windowWidth-19, (windowWidth-19)*(9/16));
+  }
+  else
+  {
+    createCanvas(windowWidth, windowWidth*(9/16));
+  }
+  
   background(0);
 }
 
@@ -10,6 +18,13 @@ function draw() {
 }
 
 function windowResized(){
-  resizeCanvas(windowWidth, windowWidth*(9/16));
+  if (width == displayWidth)
+  {
+    resizeCanvas(windowWidth-19, (windowWidth-19)*(9/16));
+  }
+  else
+  {
+    resizeCanvas(windowWidth, windowWidth*(9/16));
+  }
   background(0);
 }
