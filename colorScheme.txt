@@ -1,0 +1,5 @@
+Dark Grey #272727 
+Light Orange #D4AA7D
+Pale Green-Grey #DCE2C8
+Blue #457EAC
+Medium Orange #955E42
