@@ -62,6 +62,12 @@ function Ball(x, y, xv, yv, size){
  this.update = function(){
     this.xPos += this.xVel;
     this.yPos += this.yVel;
+    if(this.xPos - this.size <= 0 || this.xPos + this.size >= windowWidth){
+      this.xVel = -this.xVel;
+    }
+    if(this.yPos - this.size <= 0 || this.yPos + this.size >= windowHeight){
+      this.yVel = -this.yVel;
+    }
  }
 }
 
