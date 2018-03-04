@@ -3,8 +3,8 @@ var ballSize = 15;
 var balls = [];
 var heros = [];
 var index = 0;
-//var resistance = 0.00007;
-var resistance = 0;
+var resistance = 0.00007;
+//var resistance = 0;
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -80,9 +80,29 @@ function Ball(x, y, xv, yv, size){
    this.checkCollision = function(which){
     for(var ball = 0; ball < heros.length; ball++){
       if (ball != which){
-        if(Math.sqrt(Math.pow(this.xPos - heros[ball].xPos,2)+Math.pow(this.yPos-heros[ball].yPos,2)) < this.size){
-          this.xVel = 0;
-          this.yVel = 0;
+        if(Math.sqrt(Math.pow(this.xPos - heros[ball].xPos,2)+Math.pow(this.yPos-heros[ball].yPos,2)) <= this.size){ 
+          var tempX = this.xVel;
+          var tempY = this.yVel;
+          var velMag = Math.sqrt(Math.pow(this.xVel,2)+Math.pow(this.yVel,2));
+          var normX = tempX/velMag;
+          var normY = tempY/velMag;
+          var deltaX = (this.xPos - heros[ball].xPos)/this.size;
+          var deltaY = (this.yPos - heros[ball].yPos)/this.size;
+          var impactAngle = Math.acos((deltaX*normX)+(deltaY*normY));              
+          impactAngle =  (impactAngle/(Math.PI/180))-90;
+          console.log(impactAngle);
+          //TODO: Impact angle is not coming out correct
+          //TODO: Need to use impact angle to become a percentage 
+          
+          //this.xVel = heros[ball].xVel;
+          //this.yVel = heros[ball].yVel;
+          this.xVel = deltaX*((impactAngle/90)*;
+          this.yVel = deltaY;
+          //heros[ball].xVel = tempX;
+          //heros[ball].yVel = tempY;
+          this.update();
+          heros[ball].update();
+          //this.velocity = this.velocity/1.1;
       }
       }
     }
