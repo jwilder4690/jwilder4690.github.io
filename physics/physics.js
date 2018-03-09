@@ -58,9 +58,14 @@ function draw() {
   //}
   fill(0,255,0);
   for(var i = 0; i < heros.length; i++){
+    var tempX = heros[i].xPos;
+    var tempY = heros[i].yPos;
     heros[i].drawBall();
     heros[i].update();
-    heros[i].checkCollision(i);
+    if(heros[i].checkCollision(i)){
+      heros[i].xPos = tempX;
+      heros[i].yPos = tempY;
+    }
   }
 }
 
@@ -88,22 +93,27 @@ function Ball(x, y, xv, yv, size){
           var normY = tempY/velMag;
           var deltaX = (this.xPos - heros[ball].xPos)/this.size;
           var deltaY = (this.yPos - heros[ball].yPos)/this.size;
+          var dirX = deltaX/Math.abs(deltaX); 
+          var dirY = deltaY/Math.abs(deltaY);
           var impactAngle = Math.acos((deltaX*normX)+(deltaY*normY));              
-          impactAngle =  (impactAngle/(Math.PI/180))-90;
+          impactAngle =  180-(impactAngle/(Math.PI/180));    ////////near 0 is direct hit, 90 is glancing shot
           console.log(impactAngle);
           //TODO: Impact angle is not coming out correct
           //TODO: Need to use impact angle to become a percentage 
-          
-          //this.xVel = heros[ball].xVel;
-          //this.yVel = heros[ball].yVel;
-          this.xVel = deltaX*((impactAngle/90)*;
-          this.yVel = deltaY;
-          //heros[ball].xVel = tempX;
-          //heros[ball].yVel = tempY;
-          this.update();
-          heros[ball].update();
-          //this.velocity = this.velocity/1.1;
-      }
+          //Collision with moving objects apears to work, stationary balls act like walls 
+
+          this.xVel = -deltaY*((impactAngle/90)*velMag)*dirY;
+          this.yVel = -deltaX*((impactAngle/90)*velMag)*dirX;
+          heros[ball].xVel = -deltaX*(((90-impactAngle)/90)*velMag);
+          heros[ball].yVel = -deltaY*(((90-impactAngle)/90)*velMag);
+          ////temp to freeze balls/////////////////////////////
+          //heros[ball].xVel = 0;
+          //heros[ball].yVel = 0;
+          //this.xVel = 0; 
+          //this.yVel = 0;
+          return true;
+          /////////////////////////////////////////////////////
+        }
       }
     }
    }
