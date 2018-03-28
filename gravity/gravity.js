@@ -1,6 +1,13 @@
 var groundLevel = 0.8;
 var hero; 
 var keys = [];
+var heroLeft;
+var heroRight;
+
+function preload(){
+  heroLeft = loadImage("assets/heroLeft.png");
+  heroRight = loadImage("assets/heroRight.png");
+}
 
 /*///////////////////////////////////////////////////
   Changes canvas based on size of browser window. 
@@ -22,6 +29,8 @@ function keyReleased(){
     keys[key.charCodeAt(0)] = false;
   }
 }
+
+
 
 function drawBackground(){
   background(100);
@@ -84,20 +93,19 @@ function Hero(x, y){
   this.yPos = y;
   this.xVel = 5;
   this.yVel = 0;
-  this.tall = 50;
-  this.wide = 20;
+  this.tall = 100;
+  this.wide = 60;
   this.jumpHeight = 200;
   this.scaleFactor = 10;
   this.paint = color(0,255,0);
   this.jumping = false;
   this.extraJump = true;
+  this.heroSprite = heroRight;
   
   this.drawHero = function(){
-   noStroke();
-   fill(this.paint);
    this.yPos -= (this.yVel/this.scaleFactor);
    this.applyGravity();
-   rect(this.xPos,this.yPos-this.tall, this.xPos+this.wide, this.yPos);
+   image(this.heroSprite, this.xPos, this.yPos-this.tall);
   }
   
   this.adjustHero = function(w,h){
@@ -108,10 +116,12 @@ function Hero(x, y){
     if(this.xPos > 0){
       this.xPos -= this.xVel;
     }
+    this.heroSprite = heroLeft;
   }
   
   this.moveRight = function(){
     this.xPos += this.xVel;
+    this.heroSprite = heroRight;
   }
   
   this.jump = function(high){
