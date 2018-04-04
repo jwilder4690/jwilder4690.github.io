@@ -7,8 +7,8 @@ var position = 0;
 var boxes = [];
 var TOP_LEFT = 0;
 var TOP_RIGHT = 1;
-var BOT_RIGHT = 2;
-var BOT_LEFT = 3;
+var BOTTOM_RIGHT = 2;
+var BOTTOM_LEFT = 3;
 var UNEXPECTED = 55;
 
 function preload(){
@@ -77,31 +77,102 @@ function draw() {
   checkInput();
   drawBackground();
   pop(); 
-  hero.fallingCheck();
+  hero.applyGravity();
+
+  var heroLocation = hero.getCoordinates();
+  console.log("Hero start: " + heroLocation);
   for(var i = 0; i < boxes.length; i++){
-    var corners = boxes[i].getCoordinates()
-    if(checkOverlap(hero.getCoordinates(), corners)){
-      hero.xPos = tempX;
-      position = tempPosition;
-      if(hero.falling){
-        var corner = hero.cornerCheck(corners);
-        console.log(corner);
-        if(corner == TOP_LEFT || corner == TOP_RIGHT){
-          hero.yPos = corners[3]+hero.tall;
-          hero.yVel = 0;
+    var boxLocation = boxes[i].getCoordinates();
+    if(checkOverlap(heroLocation, boxLocation)){
+        var corners = hero.cornerCheck(boxLocation);
+        if(corners.length == 2){
+          if(corners[0] == BOTTOM_LEFT && corners[1] == TOP_LEFT){ ///left impact
+            hero.xPos = tempX;
+            position = tempPosition;
+          }
+          else if(corners[0] == BOTTOM_RIGHT && corners[1] == TOP_RIGHT){ //right impact
+            hero.xPos = tempX;
+            position = tempPosition;
+          }
+          else if(corners[0] == BOTTOM_LEFT && corners[1] == BOTTOM_RIGHT){ //bottom impact
+            hero.yPos = boxLocation[1];
+            hero.yVel = 0;
+            hero.extraJump = true;
+            hero.falling = false;
+            hero.jumping = false;
+          }
+          else if(corners[0] == TOP_LEFT && corners[1] == TOP_RIGHT){ //top impact
+            hero.yPos = boxLocation[3]+hero.tall;
+            hero.yVel = 0;
+          }
+          else console.log("Unexpected combination of corners.");
         }
-        if(corner == BOT_LEFT || corner == BOT_RIGHT){
-          hero.yPos = corners[1];
-          hero.yVel = 0;
-          hero.falling = false;
-          hero.jumping = false;
+        else if(corners.length == 1){
+          switch(corners[0]){
+            case TOP_LEFT: 
+              if(difference(heroLocation[0],boxLocation[2]) < difference(heroLocation[1], boxLocation[3])){
+                hero.xPos = tempX;
+                position = tempPosition;
+              }
+              else{
+                hero.yPos = boxLocation[3]+hero.tall;
+                hero.yVel = 0;
+              }
+              break;
+            case TOP_RIGHT:
+              if(difference(heroLocation[2],boxLocation[0]) < difference(heroLocation[1], boxLocation[3])){
+                hero.xPos = tempX;
+                position = tempPosition;
+              }
+              else{
+                hero.yPos = boxLocation[3]+hero.tall;
+                hero.yVel = 0;
+              }
+            break;
+            case BOTTOM_LEFT:
+              if(difference(heroLocation[0],boxLocation[2]) < difference(heroLocation[3], boxLocation[1])){
+                hero.xPos = tempX;
+                position = tempPosition;
+              }
+              else{
+                hero.yPos = boxLocation[1];
+                hero.yVel = 0;
+                hero.extraJump = true;
+                hero.falling = false;
+                hero.jumping = false;
+              }
+            break;
+            case BOTTOM_RIGHT: 
+              if(difference(heroLocation[2],boxLocation[0]) < difference(heroLocation[3], boxLocation[1])){
+                hero.xPos = tempX;
+                position = tempPosition;
+              }
+              else{
+                hero.yPos = boxLocation[1];
+                hero.yVel = 0;
+                hero.extraJump = true;
+                hero.falling = false;
+                hero.jumping = false;
+              }
+            break;
+            default: console.log("A corner was expected");
+          }
         }
-      }
+        else if(corners.length == 0){
+          //side of hero overlaps with platform
+          hero.xPos = tempX;
+          position = tempPosition;
+        }
+        else console.log("Corners length of: "+corners.length+" was unexpected. Hero: "+heroLocation+" Box: "+boxLocation);
       break;
     }
   }
-  hero.applyGravity();
   hero.drawHero();
+  hero.fallingCheck();
+}
+
+function difference(first, second){
+  return Math.abs(first - second);
 }
 
 function checkOverlap(firstObject, secondObject){
@@ -174,20 +245,26 @@ function Hero(x, y){
     return [this.xPos+position, this.yPos-this.tall, this.xPos+this.wide+position, this.yPos]; 
   }
   
+  /*////////////////////////////////////////////////////////////////////////////
+    Returns an array with each corner that is inside the provided coordinates.
+  Method expects input in the form of an array with coordinates [0],[1] as top 
+  left and [2],[3] as bottom right.
+  ////////////////////////////////////////////////////////////////////////////*/
   this.cornerCheck = function(coords){
+    var allCorners = [];
     if(pointCollision([this.xPos+position, this.yPos],coords)){
-      return BOT_LEFT; 
+      allCorners.push(BOTTOM_LEFT); 
     }
     if(pointCollision([this.xPos+position, this.yPos-this.tall],coords)){
-      return TOP_LEFT; 
+      allCorners.push(TOP_LEFT); 
     } 
     if(pointCollision([this.xPos+this.wide+position, this.yPos],coords)){
-      return BOT_RIGHT; 
+      allCorners.push(BOTTOM_RIGHT); 
     }
     if(pointCollision([this.xPos+this.wide+position, this.yPos-this.tall],coords)){
-      return TOP_RIGHT; 
+      allCorners.push(TOP_RIGHT); 
     }
-    return UNEXPECTED;
+    return allCorners;
   }
   
   this.drawHero = function(){
