@@ -3,6 +3,8 @@ var hero;
 var keys = [];
 var heroLeft;
 var heroRight;
+var heroGhostModeLeft;
+var heroGhostModeRight
 var position = 0;
 var boxes = [];
 var TOP_LEFT = 0;
@@ -14,6 +16,8 @@ var UNEXPECTED = 55;
 function preload(){
   heroLeft = loadImage("assets/heroLeft.png");
   heroRight = loadImage("assets/heroRight.png");
+  heroGhostModeLeft = loadImage("assets/heroGhostModeLeft.png");
+  heroGhostModeRight = loadImage("assets/heroGhostModeRight.png");
 }
 
 /*///////////////////////////////////////////////////
@@ -84,95 +88,96 @@ function draw() {
   hero.applyGravity();
 
   var heroLocation = hero.getCoordinates();
-  console.log("Hero start: " + heroLocation);
-  for(var i = 0; i < boxes.length; i++){
-    var boxLocation = boxes[i].getCoordinates();
-    if(checkOverlap(heroLocation, boxLocation)){
-        var corners = hero.cornerCheck(boxLocation);
-        if(corners.length == 2){
-          if(corners[0] == BOTTOM_LEFT && corners[1] == TOP_LEFT){ ///left impact
-            hero.xPos = tempX;
-            position = tempPosition;
+  if(!hero.ghostMode){
+    for(var i = 0; i < boxes.length; i++){
+      var boxLocation = boxes[i].getCoordinates();
+      if(checkOverlap(heroLocation, boxLocation)){
+          var corners = hero.cornerCheck(boxLocation);
+          if(corners.length == 2){
+            if(corners[0] == BOTTOM_LEFT && corners[1] == TOP_LEFT){ ///left impact
+              hero.xPos = tempX;
+              position = tempPosition;
+            }
+            else if(corners[0] == BOTTOM_RIGHT && corners[1] == TOP_RIGHT){ //right impact
+              hero.xPos = tempX;
+              position = tempPosition;
+            }
+            else if(corners[0] == BOTTOM_LEFT && corners[1] == BOTTOM_RIGHT){ //bottom impact
+              hero.yPos = boxLocation[1];
+              hero.yVel = 0;
+              hero.extraJump = true;
+              hero.falling = false;
+              hero.jumping = false;
+            }
+            else if(corners[0] == TOP_LEFT && corners[1] == TOP_RIGHT){ //top impact
+              hero.yPos = boxLocation[3]+hero.tall;
+              hero.yVel = 0;
+            }
+            else console.log("Unexpected combination of corners.");
           }
-          else if(corners[0] == BOTTOM_RIGHT && corners[1] == TOP_RIGHT){ //right impact
-            hero.xPos = tempX;
-            position = tempPosition;
-          }
-          else if(corners[0] == BOTTOM_LEFT && corners[1] == BOTTOM_RIGHT){ //bottom impact
-            hero.yPos = boxLocation[1];
-            hero.yVel = 0;
-            hero.extraJump = true;
-            hero.falling = false;
-            hero.jumping = false;
-          }
-          else if(corners[0] == TOP_LEFT && corners[1] == TOP_RIGHT){ //top impact
-            hero.yPos = boxLocation[3]+hero.tall;
-            hero.yVel = 0;
-          }
-          else console.log("Unexpected combination of corners.");
-        }
-        else if(corners.length == 1){
-          switch(corners[0]){
-            case TOP_LEFT: 
-              if(difference(heroLocation[0],boxLocation[2]) < difference(heroLocation[1], boxLocation[3])){
-                hero.xPos = tempX;
-                position = tempPosition;
-              }
-              else{
-                hero.yPos = boxLocation[3]+hero.tall;
-                hero.yVel = 0;
-              }
+          else if(corners.length == 1){
+            switch(corners[0]){
+              case TOP_LEFT: 
+                if(difference(heroLocation[0],boxLocation[2]) < difference(heroLocation[1], boxLocation[3])){
+                  hero.xPos = tempX;
+                  position = tempPosition;
+                }
+                else{
+                  hero.yPos = boxLocation[3]+hero.tall;
+                  hero.yVel = 0;
+                }
+                break;
+              case TOP_RIGHT:
+                if(difference(heroLocation[2],boxLocation[0]) < difference(heroLocation[1], boxLocation[3])){
+                  hero.xPos = tempX;
+                  position = tempPosition;
+                }
+                else{
+                  hero.yPos = boxLocation[3]+hero.tall;
+                  hero.yVel = 0;
+                }
               break;
-            case TOP_RIGHT:
-              if(difference(heroLocation[2],boxLocation[0]) < difference(heroLocation[1], boxLocation[3])){
-                hero.xPos = tempX;
-                position = tempPosition;
-              }
-              else{
-                hero.yPos = boxLocation[3]+hero.tall;
-                hero.yVel = 0;
-              }
-            break;
-            case BOTTOM_LEFT:
-              if(difference(heroLocation[0],boxLocation[2]) < difference(heroLocation[3], boxLocation[1])){
-                hero.xPos = tempX;
-                position = tempPosition;
-              }
-              else{
-                hero.yPos = boxLocation[1];
-                hero.yVel = 0;
-                hero.extraJump = true;
-                hero.falling = false;
-                hero.jumping = false;
-              }
-            break;
-            case BOTTOM_RIGHT: 
-              if(difference(heroLocation[2],boxLocation[0]) < difference(heroLocation[3], boxLocation[1])){
-                hero.xPos = tempX;
-                position = tempPosition;
-              }
-              else{
-                hero.yPos = boxLocation[1];
-                hero.yVel = 0;
-                hero.extraJump = true;
-                hero.falling = false;
-                hero.jumping = false;
-              }
-            break;
-            default: console.log("A corner was expected");
+              case BOTTOM_LEFT:
+                if(difference(heroLocation[0],boxLocation[2]) < difference(heroLocation[3], boxLocation[1])){
+                  hero.xPos = tempX;
+                  position = tempPosition;
+                }
+                else{
+                  hero.yPos = boxLocation[1];
+                  hero.yVel = 0;
+                  hero.extraJump = true;
+                  hero.falling = false;
+                  hero.jumping = false;
+                }
+              break;
+              case BOTTOM_RIGHT: 
+                if(difference(heroLocation[2],boxLocation[0]) < difference(heroLocation[3], boxLocation[1])){
+                  hero.xPos = tempX;
+                  position = tempPosition;
+                }
+                else{
+                  hero.yPos = boxLocation[1];
+                  hero.yVel = 0;
+                  hero.extraJump = true;
+                  hero.falling = false;
+                  hero.jumping = false;
+                }
+              break;
+              default: console.log("A corner was expected");
+            }
           }
-        }
-        else if(corners.length == 0){
-          //side of hero overlaps with platform
-          hero.xPos = tempX;
-          position = tempPosition;
-        }
-        else console.log("Corners length of: "+corners.length+" was unexpected. Hero: "+heroLocation+" Box: "+boxLocation);
-      break;
+          else if(corners.length == 0){
+            //side of hero overlaps with platform
+            hero.xPos = tempX;
+            position = tempPosition;
+          }
+          else console.log("Corners length of: "+corners.length+" was unexpected. Hero: "+heroLocation+" Box: "+boxLocation);
+        break;
+      }
     }
   }
   hero.drawHero();
-  hero.fallingCheck();
+  hero.updateHero();
 }
 
 function difference(first, second){
@@ -215,6 +220,12 @@ function checkInput(){
   {
     hero.moveRight();
   }
+  if(keys['S'.charCodeAt(0)] || keys[DOWN_ARROW])
+  {
+    if(!hero.ghostMode){
+      hero.goIntangible();
+    }
+  }
   if(keys[' '.charCodeAt(0)])
   {
     if(!hero.jumping){
@@ -241,9 +252,17 @@ function Hero(x, y){
   this.jumpHeight = 200;
   this.scaleFactor = 10;
   this.paint = color(0,255,0);
+  this.heroSprite = heroRight;
   this.jumping = false;
   this.extraJump = true;
-  this.heroSprite = heroRight;
+  this.ghostMode = false;
+  this.ghostDuration = 200;
+  this.ghostRemaining = 0;
+  this.ghostPointX = 0;
+  this.ghostPointY = 0;
+  this.ghostPosition = 0;
+
+
   
   this.getCoordinates = function(){
     return [this.xPos+position, this.yPos-this.tall, this.xPos+this.wide+position, this.yPos]; 
@@ -271,8 +290,8 @@ function Hero(x, y){
     return allCorners;
   }
   
-  this.drawHero = function(){
-   image(this.heroSprite, this.xPos, this.yPos-this.tall);
+  this.drawHero = function(){   
+     image(this.heroSprite, this.xPos, this.yPos-this.tall);
   }
   
   this.adjustHero = function(w,h){
@@ -284,7 +303,12 @@ function Hero(x, y){
     if(this.xPos > 0){
       this.xPos -= this.xVel;
     }
-    this.heroSprite = heroLeft;
+    if(this.ghostMode){
+      this.heroSprite = heroGhostModeLeft;
+    }
+    else{
+      this.heroSprite = heroLeft;
+    }
   }
   
   this.moveRight = function(){
@@ -294,7 +318,12 @@ function Hero(x, y){
     else{
       this.xPos += this.xVel;
     }
-    this.heroSprite = heroRight;
+    if(this.ghostMode){
+      this.heroSprite = heroGhostModeRight;
+    }
+    else{
+      this.heroSprite = heroRight;
+    }
   }
   
   this.jump = function(high){
@@ -303,12 +332,51 @@ function Hero(x, y){
     this.falling = true;
   }
   
-  this.fallingCheck = function(){
+  this.goIntangible = function(){
+    this.ghostMode = true;
+    this.ghostRemaining = this.ghostDuration;
+    this.ghostPointX = this.xPos;
+    this.ghostPointY = this.yPos;
+    this.ghostPosition = position;
+    if(this.heroSprite == heroRight)
+    {
+      this.heroSprite = heroGhostModeRight;
+    }
+    else if(this.heroSprite == heroLeft)
+    {
+      this.heroSprite = heroGhostModeLeft;
+    }
+  }
+  
+  this.updateHero = function(){
+    //Falling check
     if(this.yPos <  windowHeight*groundLevel){
       this.falling = true;
     }
     
+    //Fading Check
+    if(this.ghostMode){
+      this.ghostRemaining--;
+      if(this.ghostRemaining == 0){
+        this.ghostMode = false;
+        for(var i = 0; i < boxes.length; i++){
+          if(checkOverlap(this.getCoordinates(), boxes[i].getCoordinates())){
+            this.xPos = this.ghostPointX;
+            this.yPos = this.ghostPointY;
+            position = this.ghostPosition;
+            break;
+          }
+        }
+        if(this.heroSprite == heroGhostModeRight){
+          this.heroSprite = heroRight;
+        }
+        else if(this.heroSprite == heroGhostModeLeft){
+          this.heroSprite = heroLeft;
+        }
+      }
+    }
   }
+
     
   this.changeColor = function(){
     this.paint = color(255,255,255);
