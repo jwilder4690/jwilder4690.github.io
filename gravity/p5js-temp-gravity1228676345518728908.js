@@ -3,6 +3,7 @@ var hero;
 var keys = [];
 var heroLeft;
 var heroRight;
+var ghostShadow;
 var heroGhostModeLeft;
 var heroGhostModeRight
 var position = 0;
@@ -12,24 +13,30 @@ var TOP_RIGHT = 1;
 var BOTTOM_RIGHT = 2;
 var BOTTOM_LEFT = 3;
 var UNEXPECTED = 55;
+var HUD_font;
+var HUD_textColor;
+var HUD_ghostMeterColor;
 
 function preload(){
   heroLeft = loadImage("assets/heroLeft.png");
   heroRight = loadImage("assets/heroRight.png");
   heroGhostModeLeft = loadImage("assets/heroGhostModeLeft.png");
   heroGhostModeRight = loadImage("assets/heroGhostModeRight.png");
+  ghostShadow = loadImage("assets/ghostShadow.png");
+  //HUD_font = loadFont("Georgia");
 }
 
 /*///////////////////////////////////////////////////
   Changes canvas based on size of browser window. 
 ///////////////////////////////////////////////////*/
 function setup() {
+  HUD_textColor = color(200,200,200);
+  HUD_ghostMeterColor = color(200,200,255);
   createCanvas(windowWidth, windowHeight);
-  drawBackground();
   hero = new Hero(windowWidth/2, windowHeight*groundLevel);
-  boxes[0] = new Box(0, -100, 100, 100, windowHeight*groundLevel);
-  boxes[1] = new Box(500, -windowHeight, 100, windowHeight, windowHeight*groundLevel);
-  boxes[2] = new Box(1100, -200, 100, 30, windowHeight*groundLevel);
+  boxes[0] = new Box(0, -100, 100, windowHeight*groundLevel);
+  boxes[1] = new Box(500, -50, windowHeight, windowHeight*groundLevel);
+  boxes[2] = new Box(1100, -200, 30, windowHeight*groundLevel);
 
 }
 
@@ -51,9 +58,24 @@ function drawBackground(){
   rectMode(CORNERS);
   noStroke();
   rect(-6000,windowHeight*groundLevel, 6000, displayHeight);
+  drawHUD();
   for(var i = 0; i < boxes.length; i++){
     boxes[i].drawBox();
   }
+}
+
+function drawHUD(){
+  fill(HUD_textColor);
+  textFont("Helvetica");
+  textSize(30);
+  textAlign(RIGHT);
+  text("Health: ", 200+position, windowHeight*groundLevel + 40);
+  text("Ghost Mode: ", 200+position, windowHeight*groundLevel + 80);
+  noFill();
+  stroke(HUD_ghostMeterColor);
+  rect(220+position, windowHeight*groundLevel + 55, 220+position+hero.ghostDuration*2, windowHeight*groundLevel + 85);
+  fill(HUD_ghostMeterColor);
+  rect(220+position, windowHeight*groundLevel + 55, 220+position+hero.ghostRemaining*2, windowHeight*groundLevel + 85);
 }
 
 /*///////////////////////////////////////////////////////
@@ -82,8 +104,8 @@ function draw() {
   var tempPosition = position;
   push();
   translate(-position, 0);
-  checkInput();
   drawBackground();
+  checkInput();
   pop(); 
   hero.applyGravity();
 
@@ -201,10 +223,10 @@ function pointCollision(point, object){
   //point is tuple, (x,y)
   //object is rect, {x1,y1,x2,y2} (top left, bot right)
 
-  if(point[0] <= object[0] || point[0] >= object[2]){
+  if(point[0] < object[0] || point[0] > object[2]){
      return false; 
   }
-  if(point[1] <= object[1] || point[1] >= object[3]){
+  if(point[1] < object[1] || point[1] > object[3]){
      return false; 
   }
   return true; 
@@ -223,8 +245,17 @@ function checkInput(){
   if(keys['S'.charCodeAt(0)] || keys[DOWN_ARROW])
   {
     if(!hero.ghostMode){
-      hero.goIntangible();
+      if(hero.ghostRemaining == hero.ghostDuration)
+      {
+        hero.goIntangible();
+      }
     }
+    else{
+      hero.returnToGhost();
+    }
+    keys['S'.charCodeAt(0)] = false;
+    keys[DOWN_ARROW] = false;
+    
   }
   if(keys[' '.charCodeAt(0)])
   {
@@ -256,10 +287,10 @@ function Hero(x, y){
   this.jumping = false;
   this.extraJump = true;
   this.ghostMode = false;
-  this.ghostDuration = 200;
-  this.ghostRemaining = 0;
-  this.ghostPointX = 0;
-  this.ghostPointY = 0;
+  this.ghostDuration = 100;
+  this.ghostRemaining = 100;
+  this.ghost_xPos = 0;
+  this.ghost_yPos = 0;
   this.ghostPosition = 0;
 
 
@@ -291,11 +322,29 @@ function Hero(x, y){
   }
   
   this.drawHero = function(){   
+     if(this.ghostMode){
+       image(ghostShadow, this.ghost_xPos-(position-this.ghostPosition), this.ghost_yPos-this.tall);
+     }
      image(this.heroSprite, this.xPos, this.yPos-this.tall);
   }
   
   this.adjustHero = function(w,h){
     this.yPos = windowHeight*groundLevel;  
+  }
+  
+  this.returnToGhost = function(){
+    this.xPos = this.ghost_xPos +(this.ghostPosition-position);
+    this.yPos = this.ghost_yPos;
+    this.jumping = this.ghostJumping;
+    this.ghostRemianing = 0;
+    this.ghostMode = false;
+    if(this.heroSprite == heroGhostModeRight){
+      this.heroSprite = heroRight;
+    }
+    else if(this.heroSprite == heroGhostModeLeft){
+      this.heroSprite = heroLeft;
+    }
+    //position = this.ghostPosition;
   }
   
   this.moveLeft = function(){
@@ -334,9 +383,9 @@ function Hero(x, y){
   
   this.goIntangible = function(){
     this.ghostMode = true;
-    this.ghostRemaining = this.ghostDuration;
-    this.ghostPointX = this.xPos;
-    this.ghostPointY = this.yPos;
+    this.ghostJumping = this.jumping;
+    this.ghost_xPos = this.xPos;
+    this.ghost_yPos = this.yPos;
     this.ghostPosition = position;
     if(this.heroSprite == heroRight)
     {
@@ -357,13 +406,11 @@ function Hero(x, y){
     //Fading Check
     if(this.ghostMode){
       this.ghostRemaining--;
-      if(this.ghostRemaining == 0){
+      if(this.ghostRemaining <= 0){
         this.ghostMode = false;
         for(var i = 0; i < boxes.length; i++){
           if(checkOverlap(this.getCoordinates(), boxes[i].getCoordinates())){
-            this.xPos = this.ghostPointX;
-            this.yPos = this.ghostPointY;
-            position = this.ghostPosition;
+            this.returnToGhost();
             break;
           }
         }
@@ -374,6 +421,9 @@ function Hero(x, y){
           this.heroSprite = heroLeft;
         }
       }
+    }
+    else if(this.ghostRemaining < this.ghostDuration){
+      this.ghostRemaining += .5;
     }
   }
 
@@ -400,11 +450,11 @@ function Hero(x, y){
 /*/////////////////////////////////////////////////////////////
   Class for Obstacle object.
 /////////////////////////////////////////////////////////////*/
-function Box(x, y, w, h, ground){
+function Box(x, y, h, ground){
   this.x = x;
   this.y = y;
   this.groundLevel = ground;
-  this.wide = w;
+  this.wide = 60;
   this.tall = h;
   this.paint = color(0,255,0);
   
