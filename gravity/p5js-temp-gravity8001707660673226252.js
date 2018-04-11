@@ -1,3 +1,9 @@
+var TOP_LEFT = 0;
+var TOP_RIGHT = 1;
+var BOTTOM_RIGHT = 2;
+var BOTTOM_LEFT = 3;
+var UNEXPECTED = 55;
+var LEVEL_LENGTH = 6000;
 var groundLevel = 0.8;
 var hero; 
 var keys = [];
@@ -7,13 +13,8 @@ var ghostShadow;
 var heroGhostModeLeft;
 var heroGhostModeRight
 var position = 0;
-var boxes = [];
-var TOP_LEFT = 0;
-var TOP_RIGHT = 1;
-var BOTTOM_RIGHT = 2;
-var BOTTOM_LEFT = 3;
-var UNEXPECTED = 55;
-var HUD_font;
+var boxes = new Array(LEVEL_LENGTH/60);
+
 var HUD_textColor;
 var HUD_ghostMeterColor;
 
@@ -23,7 +24,6 @@ function preload(){
   heroGhostModeLeft = loadImage("assets/heroGhostModeLeft.png");
   heroGhostModeRight = loadImage("assets/heroGhostModeRight.png");
   ghostShadow = loadImage("assets/ghostShadow.png");
-  //HUD_font = loadFont("Georgia");
 }
 
 /*///////////////////////////////////////////////////
@@ -34,10 +34,26 @@ function setup() {
   HUD_ghostMeterColor = color(200,200,255);
   createCanvas(windowWidth, windowHeight);
   hero = new Hero(windowWidth/2, windowHeight*groundLevel);
-  boxes[0] = new Box(0, -100, 100, windowHeight*groundLevel);
-  boxes[1] = new Box(500, -50, windowHeight, windowHeight*groundLevel);
-  boxes[2] = new Box(1100, -200, 30, windowHeight*groundLevel);
-
+  for(var i = 0; i < boxes.length; i++){
+    boxes[i] = new Array(0);
+  }
+  boxes[0] = [
+    new Box(0, -50, 50, windowHeight*groundLevel),
+    new Box(0, -500, 30, windowHeight*groundLevel),
+    new Box(0,-150,50, windowHeight*groundLevel)
+  ]
+  
+  boxes[10] = [
+    new Box(600, -50, 50, windowHeight*groundLevel),
+    new Box(600, -500, 30, windowHeight*groundLevel),
+    new Box(600,-150,50, windowHeight*groundLevel)
+  ]
+  
+  boxes[20] = [
+    new Box(1200, -50, 50, windowHeight*groundLevel),
+    new Box(1200, -500, 30, windowHeight*groundLevel),
+    new Box(120,-150,50, windowHeight*groundLevel)
+ ]
 }
 
 function keyPressed(){
@@ -60,7 +76,9 @@ function drawBackground(){
   rect(-6000,windowHeight*groundLevel, 6000, displayHeight);
   drawHUD();
   for(var i = 0; i < boxes.length; i++){
-    boxes[i].drawBox();
+    for(var j = 0; j < boxes[i].length; j++){
+      boxes[i][j].drawBox();
+    }
   }
 }
 
@@ -110,9 +128,25 @@ function draw() {
   hero.applyGravity();
 
   var heroLocation = hero.getCoordinates();
+  var index = Math.floor((hero.xPos+position)/60);
   if(!hero.ghostMode){
-    for(var i = 0; i < boxes.length; i++){
-      var boxLocation = boxes[i].getCoordinates();
+    checkForCollisions(index, heroLocation, tempX, tempY, tempPosition);
+    checkForCollisions(index+1, heroLocation, tempX, tempY, tempPosition);
+  }
+  hero.drawHero();
+  hero.updateHero();
+}
+
+function difference(first, second){
+  return Math.abs(first - second);
+}
+
+function checkForCollisions(index, heroLocation, tempX, tempY, tempPosition){
+    //var tempX = hero.xPos;
+    //var tempY = hero.yPos; 
+    //var tempPosition = position;
+    for(var i = 0; i < boxes[index].length; i++){
+      var boxLocation = boxes[index][i].getCoordinates();
       if(checkOverlap(heroLocation, boxLocation)){
           var corners = hero.cornerCheck(boxLocation);
           if(corners.length == 2){
@@ -197,13 +231,6 @@ function draw() {
         break;
       }
     }
-  }
-  hero.drawHero();
-  hero.updateHero();
-}
-
-function difference(first, second){
-  return Math.abs(first - second);
 }
 
 function checkOverlap(firstObject, secondObject){
@@ -408,8 +435,15 @@ function Hero(x, y){
       this.ghostRemaining--;
       if(this.ghostRemaining <= 0){
         this.ghostMode = false;
-        for(var i = 0; i < boxes.length; i++){
-          if(checkOverlap(this.getCoordinates(), boxes[i].getCoordinates())){
+        var index = Math.floor((this.xPos+position)/60);
+        for(var i = 0; i < boxes[index].length; i++){
+          if(checkOverlap(this.getCoordinates(), boxes[index][i].getCoordinates())){
+            this.returnToGhost();
+            break;
+          }
+        }
+        for(var i = 0; i < boxes[index+1].length; i++){
+          if(checkOverlap(this.getCoordinates(), boxes[index+1][i].getCoordinates())){
             this.returnToGhost();
             break;
           }
