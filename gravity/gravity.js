@@ -1,22 +1,34 @@
+//Constants
 var TOP_LEFT = 0;
 var TOP_RIGHT = 1;
 var BOTTOM_RIGHT = 2;
 var BOTTOM_LEFT = 3;
 var UNEXPECTED = 55;
 var LEVEL_LENGTH = 6000;
-var groundLevel = 0.8;
+var BOX_WIDTH = 60;
+var GROUND_LEVEL = 0.8;
+var SKY_LEVEL = 0.2;
+
+//Gameplay elements
 var hero; 
 var keys = [];
+var position = 0;
+var ground = new Array(3);
+var boxes = new Array(LEVEL_LENGTH/BOX_WIDTH);
+
+//HUD
+var HUD_textColor;
+var HUD_ghostMeterColor;
+
+//Sprites
 var heroLeft;
+var heroFlower = [];
+var frameCurrent = 0;
+var frameMax = 56;
 var heroRight;
 var ghostShadow;
 var heroGhostModeLeft;
 var heroGhostModeRight
-var position = 0;
-var boxes = new Array(LEVEL_LENGTH/60);
-
-var HUD_textColor;
-var HUD_ghostMeterColor;
 
 function preload(){
   heroLeft = loadImage("assets/heroLeft.png");
@@ -24,6 +36,10 @@ function preload(){
   heroGhostModeLeft = loadImage("assets/heroGhostModeLeft.png");
   heroGhostModeRight = loadImage("assets/heroGhostModeRight.png");
   ghostShadow = loadImage("assets/ghostShadow.png");
+  for(var i = 0; i<=frameMax; i++)
+  {
+    heroFlower[i] = loadImage("assets/heroFlower/heroFlower"+nf(i,2)+".png");
+  }
 }
 
 /*///////////////////////////////////////////////////
@@ -33,26 +49,29 @@ function setup() {
   HUD_textColor = color(200,200,200);
   HUD_ghostMeterColor = color(200,200,255);
   createCanvas(windowWidth, windowHeight);
-  hero = new Hero(windowWidth/2, windowHeight*groundLevel);
+  hero = new Hero(120, windowHeight*GROUND_LEVEL);
+  ground[0] = new Box(0, 0, 600, 1000, windowHeight*GROUND_LEVEL);
+  ground[1] = new Box(720, 0, 240, windowHeight, windowHeight*GROUND_LEVEL);
+  ground[2] = new Box(1200, 0, 2400, windowHeight, windowHeight*GROUND_LEVEL);
   for(var i = 0; i < boxes.length; i++){
     boxes[i] = new Array(0);
   }
   boxes[0] = [
-    new Box(0, -50, 50, windowHeight*groundLevel),
-    new Box(0, -500, 30, windowHeight*groundLevel),
-    new Box(0,-150,50, windowHeight*groundLevel)
+    new Box(0, -50, BOX_WIDTH, 50, windowHeight*GROUND_LEVEL),
+    new Box(0, -500, BOX_WIDTH, 30, windowHeight*GROUND_LEVEL),
+    new Box(0,-150, BOX_WIDTH, 50, windowHeight*GROUND_LEVEL)
   ]
   
   boxes[10] = [
-    new Box(600, -50, 50, windowHeight*groundLevel),
-    new Box(600, -500, 30, windowHeight*groundLevel),
-    new Box(600,-150,50, windowHeight*groundLevel)
+    new Box(600, -50, BOX_WIDTH,  50, windowHeight*GROUND_LEVEL),
+    new Box(600, -500, BOX_WIDTH,  30, windowHeight*GROUND_LEVEL),
+    new Box(600,-150, BOX_WIDTH, 50, windowHeight*GROUND_LEVEL)
   ]
   
   boxes[20] = [
-    new Box(1200, -50, 50, windowHeight*groundLevel),
-    new Box(1200, -500, 30, windowHeight*groundLevel),
-    new Box(120,-150,50, windowHeight*groundLevel)
+    new Box(1200, -50, BOX_WIDTH,  50, windowHeight*GROUND_LEVEL),
+    new Box(1200, -500,  BOX_WIDTH, 30, windowHeight*GROUND_LEVEL),
+    new Box(1200,-150, BOX_WIDTH, 50, windowHeight*GROUND_LEVEL)
  ]
 }
 
@@ -70,30 +89,36 @@ function keyReleased(){
 
 function drawBackground(){
   background(100);
-  fill(55,55,55);
   rectMode(CORNERS);
-  noStroke();
-  rect(-6000,windowHeight*groundLevel, 6000, displayHeight);
-  drawHUD();
+  for(var i = 0; i < ground.length; i++){
+    ground[i].drawBox();
+  }
   for(var i = 0; i < boxes.length; i++){
     for(var j = 0; j < boxes[i].length; j++){
       boxes[i][j].drawBox();
     }
   }
+  drawHUD();
 }
 
 function drawHUD(){
+  fill(55,55,55);
+  rectMode(CORNERS);
+  stroke(200,200,200);
+  strokeWeight(3);
+  rect(-10, 0, LEVEL_LENGTH, windowHeight*SKY_LEVEL);
   fill(HUD_textColor);
   textFont("Helvetica");
   textSize(30);
   textAlign(RIGHT);
-  text("Health: ", 200+position, windowHeight*groundLevel + 40);
-  text("Ghost Mode: ", 200+position, windowHeight*groundLevel + 80);
+  noStroke();
+  text("Health: ", 200+position, windowHeight*SKY_LEVEL - 80);
+  text("Ghost Mode: ", 200+position, windowHeight*SKY_LEVEL - 40);
   noFill();
   stroke(HUD_ghostMeterColor);
-  rect(220+position, windowHeight*groundLevel + 55, 220+position+hero.ghostDuration*2, windowHeight*groundLevel + 85);
+  rect(220+position, windowHeight*SKY_LEVEL - 40, 220+position+hero.ghostDuration*2, windowHeight*SKY_LEVEL - 60);
   fill(HUD_ghostMeterColor);
-  rect(220+position, windowHeight*groundLevel + 55, 220+position+hero.ghostRemaining*2, windowHeight*groundLevel + 85);
+  rect(220+position, windowHeight*SKY_LEVEL - 40, 220+position+hero.ghostRemaining*2, windowHeight*SKY_LEVEL - 60);
 }
 
 /*///////////////////////////////////////////////////////
@@ -112,7 +137,12 @@ function windowResized(){
   drawBackground();
   hero.adjustHero(windowWidth, windowHeight);
   for(var i = 0; i < boxes.length; i++){
-    boxes[i].adjustBox(windowHeight*groundLevel);
+    for(var j = 0; j < boxes[i].length; j++){
+      boxes[i][j].adjustBox(windowHeight*GROUND_LEVEL);
+    }
+  }
+  for(var i = 0; i < ground.length; i++){
+      ground[i].adjustBox(windowHeight*GROUND_LEVEL);
   }
 }
 
@@ -123,15 +153,16 @@ function draw() {
   push();
   translate(-position, 0);
   drawBackground();
-  checkInput();
+  checkInput(!hero.alive);
   pop(); 
   hero.applyGravity();
 
   var heroLocation = hero.getCoordinates();
-  var index = Math.floor((hero.xPos+position)/60);
+  var index = Math.floor((hero.xPos+position)/BOX_WIDTH);
   if(!hero.ghostMode){
-    checkForCollisions(index, heroLocation, tempX, tempY, tempPosition);
-    checkForCollisions(index+1, heroLocation, tempX, tempY, tempPosition);
+    checkForCollisions(boxes[index], heroLocation, tempX, tempY, tempPosition);
+    checkForCollisions(boxes[index+1], heroLocation, tempX, tempY, tempPosition);
+    checkForCollisions(ground, heroLocation, tempX, tempY, tempPosition);
   }
   hero.drawHero();
   hero.updateHero();
@@ -141,12 +172,9 @@ function difference(first, second){
   return Math.abs(first - second);
 }
 
-function checkForCollisions(index, heroLocation, tempX, tempY, tempPosition){
-    //var tempX = hero.xPos;
-    //var tempY = hero.yPos; 
-    //var tempPosition = position;
-    for(var i = 0; i < boxes[index].length; i++){
-      var boxLocation = boxes[index][i].getCoordinates();
+function checkForCollisions(obstacleList, heroLocation, tempX, tempY, tempPosition){
+    for(var i = 0; i < obstacleList.length; i++){
+      var boxLocation = obstacleList[i].getCoordinates();
       if(checkOverlap(heroLocation, boxLocation)){
           var corners = hero.cornerCheck(boxLocation);
           if(corners.length == 2){
@@ -162,7 +190,7 @@ function checkForCollisions(index, heroLocation, tempX, tempY, tempPosition){
               hero.yPos = boxLocation[1];
               hero.yVel = 0;
               hero.extraJump = true;
-              hero.falling = false;
+              //hero.falling = false;
               hero.jumping = false;
             }
             else if(corners[0] == TOP_LEFT && corners[1] == TOP_RIGHT){ //top impact
@@ -202,7 +230,7 @@ function checkForCollisions(index, heroLocation, tempX, tempY, tempPosition){
                   hero.yPos = boxLocation[1];
                   hero.yVel = 0;
                   hero.extraJump = true;
-                  hero.falling = false;
+                  //hero.falling = false;
                   hero.jumping = false;
                 }
               break;
@@ -215,7 +243,7 @@ function checkForCollisions(index, heroLocation, tempX, tempY, tempPosition){
                   hero.yPos = boxLocation[1];
                   hero.yVel = 0;
                   hero.extraJump = true;
-                  hero.falling = false;
+                  //hero.falling = false;
                   hero.jumping = false;
                 }
               break;
@@ -260,40 +288,43 @@ function pointCollision(point, object){
 }
 
 
-function checkInput(){
-  if(keys['A'.charCodeAt(0)] || keys[LEFT_ARROW])
-  {
-    hero.moveLeft();
-  }
-  if(keys['D'.charCodeAt(0)] || keys[RIGHT_ARROW])
-  {
-    hero.moveRight();
-  }
-  if(keys['S'.charCodeAt(0)] || keys[DOWN_ARROW])
-  {
-    if(!hero.ghostMode){
-      if(hero.ghostRemaining == hero.ghostDuration)
-      {
-        hero.goIntangible();
+function checkInput(gameOver){
+  if(!gameOver){   
+    if(keys['A'.charCodeAt(0)] || keys[LEFT_ARROW]){
+      hero.moveLeft();
+    }
+    if(keys['D'.charCodeAt(0)] || keys[RIGHT_ARROW]){
+      hero.moveRight();
+    }
+    if(keys['S'.charCodeAt(0)] || keys[DOWN_ARROW]){
+      if(!hero.ghostMode){
+        if(hero.ghostRemaining == hero.ghostDuration)
+        {
+          hero.goIntangible();
+        }
+      }
+      else{
+        hero.returnToGhost();
+      }
+      keys['S'.charCodeAt(0)] = false;
+      keys[DOWN_ARROW] = false;
+      
+    }
+    if(keys[' '.charCodeAt(0)]){
+      if(!hero.jumping && !hero.ghostMode){
+        hero.jump(hero.jumpHeight);
+        keys[' '.charCodeAt(0)] = false;
+      }
+      else if(hero.extraJump && !hero.ghostMode){
+        hero.jump(hero.jumpHeight/2);
+        hero.extraJump = false;
       }
     }
-    else{
-      hero.returnToGhost();
-    }
-    keys['S'.charCodeAt(0)] = false;
-    keys[DOWN_ARROW] = false;
-    
   }
-  if(keys[' '.charCodeAt(0)])
-  {
-    if(!hero.jumping){
-      hero.jump(hero.jumpHeight);
-      keys[' '.charCodeAt(0)] = false;
-    }
-    else if(hero.extraJump){
-      hero.jump(hero.jumpHeight/2);
-      hero.extraJump = false;
-    }
+  ////////////////Test Key///////////////////
+  
+  if(keys['T'.charCodeAt(0)]){
+    hero.gameOver()
   }
 }
 
@@ -309,8 +340,11 @@ function Hero(x, y){
   this.wide = 60;
   this.jumpHeight = 200;
   this.scaleFactor = 10;
+  this.terminalVelocity = -150;
   this.paint = color(0,255,0);
   this.heroSprite = heroRight;
+  this.falling = true;
+  this.alive = true;
   this.jumping = false;
   this.extraJump = true;
   this.ghostMode = false;
@@ -349,14 +383,14 @@ function Hero(x, y){
   }
   
   this.drawHero = function(){   
-     if(this.ghostMode){
+     if(this.ghostMode && this.alive){
        image(ghostShadow, this.ghost_xPos-(position-this.ghostPosition), this.ghost_yPos-this.tall);
      }
      image(this.heroSprite, this.xPos, this.yPos-this.tall);
   }
   
   this.adjustHero = function(w,h){
-    this.yPos = windowHeight*groundLevel;  
+    this.yPos = windowHeight*GROUND_LEVEL;  
   }
   
   this.returnToGhost = function(){
@@ -365,6 +399,7 @@ function Hero(x, y){
     this.jumping = this.ghostJumping;
     this.ghostRemianing = 0;
     this.ghostMode = false;
+    this.falling = true;
     if(this.heroSprite == heroGhostModeRight){
       this.heroSprite = heroRight;
     }
@@ -409,6 +444,7 @@ function Hero(x, y){
   }
   
   this.goIntangible = function(){
+    this.falling = false;
     this.ghostMode = true;
     this.ghostJumping = this.jumping;
     this.ghost_xPos = this.xPos;
@@ -424,10 +460,27 @@ function Hero(x, y){
     }
   }
   
+  this.gameOver = function(){
+    this.alive = false;
+    this.heroSprite = heroFlower[frameCurrent];
+    if(this.yPos > windowHeight){
+      this.yPos = windowHeight;
+    }
+    this.falling = false; 
+  }
+  
   this.updateHero = function(){
-    //Falling check
-    if(this.yPos <  windowHeight*groundLevel){
-      this.falling = true;
+    //Fell off screen check
+    if(this.yPos-this.tall > windowHeight){
+      this.gameOver();
+    }
+    
+    //Alive Check
+    if(!this.alive){
+      if(frameCurrent < frameMax){
+        frameCurrent++;
+        this.heroSprite = heroFlower[frameCurrent];
+      }
     }
     
     //Fading Check
@@ -435,7 +488,8 @@ function Hero(x, y){
       this.ghostRemaining--;
       if(this.ghostRemaining <= 0){
         this.ghostMode = false;
-        var index = Math.floor((this.xPos+position)/60);
+        this.falling = true;
+        var index = Math.floor((this.xPos+position)/BOX_WIDTH);
         for(var i = 0; i < boxes[index].length; i++){
           if(checkOverlap(this.getCoordinates(), boxes[index][i].getCoordinates())){
             this.returnToGhost();
@@ -469,14 +523,10 @@ function Hero(x, y){
   this.applyGravity = function(){ 
     if(this.falling){ 
       this.yVel -= 9.8; 
-      this.yPos -= (this.yVel/this.scaleFactor);
-      if(this.yPos >= windowHeight*groundLevel){
-        this.yPos = windowHeight*groundLevel;
-        this.yVel = 0;
-        this.jumping = false;
-        this.falling = false;
-        this.extraJump = true;
+      if(this.yVel < this.terminalVelocity){
+        this.yVel = this.terminalVelocity;
       }
+      this.yPos -= (this.yVel/this.scaleFactor);
     }
   }
 }
@@ -484,13 +534,13 @@ function Hero(x, y){
 /*/////////////////////////////////////////////////////////////
   Class for Obstacle object.
 /////////////////////////////////////////////////////////////*/
-function Box(x, y, h, ground){
+function Box(x, y, w, h, ground){
   this.x = x;
   this.y = y;
   this.groundLevel = ground;
-  this.wide = 60;
   this.tall = h;
-  this.paint = color(0,255,0);
+  this.wide = w;
+  this.paint = color(200,50,50);
   
   this.getCoordinates = function(){
     return [this.x, this.y+this.groundLevel, this.x+this.wide, this.y+this.tall+this.groundLevel]; 
@@ -498,6 +548,7 @@ function Box(x, y, h, ground){
   
   this.drawBox = function(){
     fill(this.paint);
+    noStroke();
     rect(this.x, this.y+this.groundLevel, this.x+this.wide, this.y+this.tall+this.groundLevel);
   }
   
