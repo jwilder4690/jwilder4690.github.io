@@ -5,14 +5,20 @@ var BOTTOM_RIGHT = 2;
 var BOTTOM_LEFT = 3;
 var UNEXPECTED = 55;
 var LEVEL_LENGTH = 6000;
+var LEVEL_HEIGHT = 3000;
+
 var BOX_WIDTH = 60;
 var GROUND_LEVEL = 0.8;
 var SKY_LEVEL = 0.2;
+var PLAY_MODE = 4;
+var CREATE_MODE = 5;
 
 //Gameplay elements
+var gameMode = PLAY_MODE
 var hero; 
 var keys = [];
-var position = 0;
+var translationX = 0;
+var translationY = 0;
 var ground = new Array(3);
 var boxes = new Array(LEVEL_LENGTH/BOX_WIDTH);
 
@@ -52,7 +58,7 @@ function setup() {
   hero = new Hero(120, windowHeight*GROUND_LEVEL);
   ground[0] = new Box(0, 0, 600, 1000, windowHeight*GROUND_LEVEL);
   ground[1] = new Box(720, 0, 240, windowHeight, windowHeight*GROUND_LEVEL);
-  ground[2] = new Box(1200, 0, 2400, windowHeight, windowHeight*GROUND_LEVEL);
+  ground[2] = new Box(1200, 0, LEVEL_LENGTH-1300, windowHeight, windowHeight*GROUND_LEVEL);
   for(var i = 0; i < boxes.length; i++){
     boxes[i] = new Array(0);
   }
@@ -106,19 +112,29 @@ function drawHUD(){
   rectMode(CORNERS);
   stroke(200,200,200);
   strokeWeight(3);
-  rect(-10, 0, LEVEL_LENGTH, windowHeight*SKY_LEVEL);
+  rect(-10, -translationY, LEVEL_LENGTH, windowHeight*SKY_LEVEL-translationY);
   fill(HUD_textColor);
   textFont("Helvetica");
   textSize(30);
   textAlign(RIGHT);
   noStroke();
-  text("Health: ", 200+position, windowHeight*SKY_LEVEL - 80);
-  text("Ghost Mode: ", 200+position, windowHeight*SKY_LEVEL - 40);
+  text("Health: ", 200+translationX, windowHeight*SKY_LEVEL -80 - translationY);
+  text("Ghost Mode: ", 200+translationX, windowHeight*SKY_LEVEL - 40 - translationY);
   noFill();
   stroke(HUD_ghostMeterColor);
-  rect(220+position, windowHeight*SKY_LEVEL - 40, 220+position+hero.ghostDuration*2, windowHeight*SKY_LEVEL - 60);
+  rect(220+translationX, windowHeight*SKY_LEVEL - 40 - translationY, 220+translationX+hero.ghostDuration*2, windowHeight*SKY_LEVEL - 60 - translationY);
   fill(HUD_ghostMeterColor);
-  rect(220+position, windowHeight*SKY_LEVEL - 40, 220+position+hero.ghostRemaining*2, windowHeight*SKY_LEVEL - 60);
+  rect(220+translationX, windowHeight*SKY_LEVEL - 40 - translationY, 220+translationX+hero.ghostRemaining*2, windowHeight*SKY_LEVEL - 60 - translationY);
+}
+
+function drawGrid(gridSpacing){
+  stroke(0,0,0);
+  for(var i = -3; i < LEVEL_HEIGHT/gridSpacing; i++){
+    line(0, windowHeight*GROUND_LEVEL + translationY - i*gridSpacing, LEVEL_LENGTH, windowHeight*GROUND_LEVEL + translationY - i*gridSpacing);
+ }
+ for(var j = 0; j < LEVEL_LENGTH/gridSpacing; j++){
+   line(j*gridSpacing - translationX, -LEVEL_HEIGHT, j*gridSpacing - translationX, LEVEL_HEIGHT);
+ }
 }
 
 /*///////////////////////////////////////////////////////
@@ -149,23 +165,29 @@ function windowResized(){
 function draw() {
   var tempX = hero.xPos;
   var tempY = hero.yPos; 
-  var tempPosition = position;
+  var tempPosition = translationX;
   push();
-  translate(-position, 0);
+  translate(-translationX, translationY);
   drawBackground();
   checkInput(!hero.alive);
   pop(); 
-  hero.applyGravity();
-
-  var heroLocation = hero.getCoordinates();
-  var index = Math.floor((hero.xPos+position)/BOX_WIDTH);
-  if(!hero.ghostMode){
-    checkForCollisions(boxes[index], heroLocation, tempX, tempY, tempPosition);
-    checkForCollisions(boxes[index+1], heroLocation, tempX, tempY, tempPosition);
-    checkForCollisions(ground, heroLocation, tempX, tempY, tempPosition);
+    
+  if(gameMode == PLAY_MODE){
+    hero.applyGravity();
+    var heroLocation = hero.getCoordinates();
+    var index = Math.floor((hero.xPos+translationX)/BOX_WIDTH);
+    if(!hero.ghostMode && gameMode){
+      checkForCollisions(boxes[index], heroLocation, tempX, tempY, tempPosition);
+      checkForCollisions(boxes[index+1], heroLocation, tempX, tempY, tempPosition);
+      checkForCollisions(ground, heroLocation, tempX, tempY, tempPosition);
+    }
+    hero.drawHero();
+    hero.updateHero();
   }
-  hero.drawHero();
-  hero.updateHero();
+  
+  if(gameMode == CREATE_MODE){
+    drawGrid(BOX_WIDTH);
+  }
 }
 
 function difference(first, second){
@@ -180,11 +202,11 @@ function checkForCollisions(obstacleList, heroLocation, tempX, tempY, tempPositi
           if(corners.length == 2){
             if(corners[0] == BOTTOM_LEFT && corners[1] == TOP_LEFT){ ///left impact
               hero.xPos = tempX;
-              position = tempPosition;
+              translationX = tempPosition;
             }
             else if(corners[0] == BOTTOM_RIGHT && corners[1] == TOP_RIGHT){ //right impact
               hero.xPos = tempX;
-              position = tempPosition;
+              translationX = tempPosition;
             }
             else if(corners[0] == BOTTOM_LEFT && corners[1] == BOTTOM_RIGHT){ //bottom impact
               hero.yPos = boxLocation[1];
@@ -204,7 +226,7 @@ function checkForCollisions(obstacleList, heroLocation, tempX, tempY, tempPositi
               case TOP_LEFT: 
                 if(difference(heroLocation[0],boxLocation[2]) < difference(heroLocation[1], boxLocation[3])){
                   hero.xPos = tempX;
-                  position = tempPosition;
+                  translationX = tempPosition;
                 }
                 else{
                   hero.yPos = boxLocation[3]+hero.tall;
@@ -214,7 +236,7 @@ function checkForCollisions(obstacleList, heroLocation, tempX, tempY, tempPositi
               case TOP_RIGHT:
                 if(difference(heroLocation[2],boxLocation[0]) < difference(heroLocation[1], boxLocation[3])){
                   hero.xPos = tempX;
-                  position = tempPosition;
+                  translationX = tempPosition;
                 }
                 else{
                   hero.yPos = boxLocation[3]+hero.tall;
@@ -224,7 +246,7 @@ function checkForCollisions(obstacleList, heroLocation, tempX, tempY, tempPositi
               case BOTTOM_LEFT:
                 if(difference(heroLocation[0],boxLocation[2]) < difference(heroLocation[3], boxLocation[1])){
                   hero.xPos = tempX;
-                  position = tempPosition;
+                  translationX = tempPosition;
                 }
                 else{
                   hero.yPos = boxLocation[1];
@@ -237,7 +259,7 @@ function checkForCollisions(obstacleList, heroLocation, tempX, tempY, tempPositi
               case BOTTOM_RIGHT: 
                 if(difference(heroLocation[2],boxLocation[0]) < difference(heroLocation[3], boxLocation[1])){
                   hero.xPos = tempX;
-                  position = tempPosition;
+                  translationX = tempPosition;
                 }
                 else{
                   hero.yPos = boxLocation[1];
@@ -253,7 +275,7 @@ function checkForCollisions(obstacleList, heroLocation, tempX, tempY, tempPositi
           else if(corners.length == 0){
             //side of hero overlaps with platform
             hero.xPos = tempX;
-            position = tempPosition;
+            translationX = tempPosition;
           }
           else console.log("Corners length of: "+corners.length+" was unexpected. Hero: "+heroLocation+" Box: "+boxLocation);
         break;
@@ -289,7 +311,10 @@ function pointCollision(point, object){
 
 
 function checkInput(gameOver){
-  if(!gameOver){   
+  if(gameOver){ 
+    return;
+  }
+  if(gameMode == PLAY_MODE){
     if(keys['A'.charCodeAt(0)] || keys[LEFT_ARROW]){
       hero.moveLeft();
     }
@@ -321,10 +346,32 @@ function checkInput(gameOver){
       }
     }
   }
+  if(gameMode == CREATE_MODE){
+    if(keys['A'.charCodeAt(0)] || keys[LEFT_ARROW]){
+      translationX -= 10;
+      if(translationX < 0){
+        translationX = 0;
+      }
+    }
+    if(keys['D'.charCodeAt(0)] || keys[RIGHT_ARROW]){
+      if(translationX + windowWidth < LEVEL_LENGTH){
+        translationX += 10;
+      }
+    }
+    if(keys['S'.charCodeAt(0)] || keys[DOWN_ARROW]){
+      translationY -=10;
+      if(translationY < 0){
+        translationY = 0;
+      }
+    }
+    if(keys['W'.charCodeAt(0)] || keys[UP_ARROW]){
+      translationY += 10;
+    }
+  }
   ////////////////Test Key///////////////////
   
   if(keys['T'.charCodeAt(0)]){
-    hero.gameOver()
+    gameMode = CREATE_MODE;
   }
 }
 
@@ -357,7 +404,7 @@ function Hero(x, y){
 
   
   this.getCoordinates = function(){
-    return [this.xPos+position, this.yPos-this.tall, this.xPos+this.wide+position, this.yPos]; 
+    return [this.xPos+translationX, this.yPos-this.tall, this.xPos+this.wide+translationX, this.yPos]; 
   }
   
   /*////////////////////////////////////////////////////////////////////////////
@@ -367,16 +414,16 @@ function Hero(x, y){
   ////////////////////////////////////////////////////////////////////////////*/
   this.cornerCheck = function(coords){
     var allCorners = [];
-    if(pointCollision([this.xPos+position, this.yPos],coords)){
+    if(pointCollision([this.xPos+translationX, this.yPos],coords)){
       allCorners.push(BOTTOM_LEFT); 
     }
-    if(pointCollision([this.xPos+position, this.yPos-this.tall],coords)){
+    if(pointCollision([this.xPos+translationX, this.yPos-this.tall],coords)){
       allCorners.push(TOP_LEFT); 
     } 
-    if(pointCollision([this.xPos+this.wide+position, this.yPos],coords)){
+    if(pointCollision([this.xPos+this.wide+translationX, this.yPos],coords)){
       allCorners.push(BOTTOM_RIGHT); 
     }
-    if(pointCollision([this.xPos+this.wide+position, this.yPos-this.tall],coords)){
+    if(pointCollision([this.xPos+this.wide+translationX, this.yPos-this.tall],coords)){
       allCorners.push(TOP_RIGHT); 
     }
     return allCorners;
@@ -384,7 +431,7 @@ function Hero(x, y){
   
   this.drawHero = function(){   
      if(this.ghostMode && this.alive){
-       image(ghostShadow, this.ghost_xPos-(position-this.ghostPosition), this.ghost_yPos-this.tall);
+       image(ghostShadow, this.ghost_xPos-(translationX-this.ghostPosition), this.ghost_yPos-this.tall);
      }
      image(this.heroSprite, this.xPos, this.yPos-this.tall);
   }
@@ -394,7 +441,7 @@ function Hero(x, y){
   }
   
   this.returnToGhost = function(){
-    this.xPos = this.ghost_xPos +(this.ghostPosition-position);
+    this.xPos = this.ghost_xPos +(this.ghostPosition-translationX);
     this.yPos = this.ghost_yPos;
     this.jumping = this.ghostJumping;
     this.ghostRemianing = 0;
@@ -406,7 +453,7 @@ function Hero(x, y){
     else if(this.heroSprite == heroGhostModeLeft){
       this.heroSprite = heroLeft;
     }
-    //position = this.ghostPosition;
+    //translationX = this.ghostPosition;
   }
   
   this.moveLeft = function(){
@@ -424,7 +471,7 @@ function Hero(x, y){
   
   this.moveRight = function(){
     if(this.xPos > windowWidth/2){
-      position += this.xVel;
+      translationX += this.xVel;
     }
     else{
       this.xPos += this.xVel;
@@ -449,7 +496,7 @@ function Hero(x, y){
     this.ghostJumping = this.jumping;
     this.ghost_xPos = this.xPos;
     this.ghost_yPos = this.yPos;
-    this.ghostPosition = position;
+    this.ghostPosition = translationX;
     if(this.heroSprite == heroRight)
     {
       this.heroSprite = heroGhostModeRight;
@@ -489,7 +536,7 @@ function Hero(x, y){
       if(this.ghostRemaining <= 0){
         this.ghostMode = false;
         this.falling = true;
-        var index = Math.floor((this.xPos+position)/BOX_WIDTH);
+        var index = Math.floor((this.xPos+translationX)/BOX_WIDTH);
         for(var i = 0; i < boxes[index].length; i++){
           if(checkOverlap(this.getCoordinates(), boxes[index][i].getCoordinates())){
             this.returnToGhost();
