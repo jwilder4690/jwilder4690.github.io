@@ -12,10 +12,12 @@ var GROUND_LEVEL = 0.8;
 var SKY_LEVEL = 0.2;
 var PLAY_MODE = 4;
 var CREATE_MODE = 5;
+var GAME_OVER = 6;
 
 //Gameplay elements
 var gameMode = PLAY_MODE
 var hero; 
+var heroStart = 120;
 var keys = [];
 var translationX = 0;
 var translationY = 0;
@@ -55,7 +57,7 @@ function setup() {
   HUD_textColor = color(200,200,200);
   HUD_ghostMeterColor = color(200,200,255);
   createCanvas(windowWidth, windowHeight);
-  hero = new Hero(120, windowHeight*GROUND_LEVEL);
+  hero = new Hero(heroStart, windowHeight*GROUND_LEVEL);
   ground[0] = new Box(0, 0, 600, 1000, windowHeight*GROUND_LEVEL);
   ground[1] = new Box(720, 0, 240, windowHeight, windowHeight*GROUND_LEVEL);
   ground[2] = new Box(1200, 0, LEVEL_LENGTH-1300, windowHeight, windowHeight*GROUND_LEVEL);
@@ -79,6 +81,15 @@ function setup() {
     new Box(1200, -500,  BOX_WIDTH, 30, windowHeight*GROUND_LEVEL),
     new Box(1200,-150, BOX_WIDTH, 50, windowHeight*GROUND_LEVEL)
  ]
+}
+
+function mousePressed(){
+  if(gameMode == CREATE_MODE)
+  {
+    var index = Math.floor((mouseX+translationX)/BOX_WIDTH);
+     console.log("Made a new box at: "+index);
+    append(boxes[index], new Box(index*BOX_WIDTH, Math.floor((mouseY-translationY-windowHeight*GROUND_LEVEL)/BOX_WIDTH)*BOX_WIDTH, BOX_WIDTH, BOX_WIDTH, windowHeight*GROUND_LEVEL));
+  }
 }
 
 function keyPressed(){
@@ -181,9 +192,10 @@ function draw() {
       checkForCollisions(boxes[index+1], heroLocation, tempX, tempY, tempPosition);
       checkForCollisions(ground, heroLocation, tempX, tempY, tempPosition);
     }
-    hero.drawHero();
-    hero.updateHero();
   }
+  
+  hero.drawHero();
+  hero.updateHero();
   
   if(gameMode == CREATE_MODE){
     drawGrid(BOX_WIDTH);
@@ -311,9 +323,6 @@ function pointCollision(point, object){
 
 
 function checkInput(gameOver){
-  if(gameOver){ 
-    return;
-  }
   if(gameMode == PLAY_MODE){
     if(keys['A'.charCodeAt(0)] || keys[LEFT_ARROW]){
       hero.moveLeft();
@@ -332,8 +341,7 @@ function checkInput(gameOver){
         hero.returnToGhost();
       }
       keys['S'.charCodeAt(0)] = false;
-      keys[DOWN_ARROW] = false;
-      
+      keys[DOWN_ARROW] = false; 
     }
     if(keys[' '.charCodeAt(0)]){
       if(!hero.jumping && !hero.ghostMode){
@@ -368,11 +376,26 @@ function checkInput(gameOver){
       translationY += 10;
     }
   }
-  ////////////////Test Key///////////////////
   
-  if(keys['T'.charCodeAt(0)]){
-    gameMode = CREATE_MODE;
+    
+  if(keys['M'.charCodeAt(0)]){
+    if(gameMode == CREATE_MODE){
+      gameMode = PLAY_MODE;
+    }
+    else if(gameMode == PLAY_MODE){
+      gameMode = CREATE_MODE;
+    }
   }
+  if(keys['R'.charCodeAt(0)]){
+    hero.resetHero();
+    //TODO: reset translation and hero pos
+  }
+  
+  ////////////////Test Key///////////////////
+
+  if(keys['T'.charCodeAt(0)]){
+  }
+  
 }
 
 /*/////////////////////////////////////////////////////////////
@@ -509,11 +532,25 @@ function Hero(x, y){
   
   this.gameOver = function(){
     this.alive = false;
+    gameMode = GAME_OVER;
     this.heroSprite = heroFlower[frameCurrent];
     if(this.yPos > windowHeight){
       this.yPos = windowHeight;
     }
     this.falling = false; 
+  }
+  
+  this.resetHero = function(){
+    gameMode = PLAY_MODE;
+    this.alive = true;
+    this.xPos = heroStart;
+    this.yPos = windowHeight*GROUND_LEVEL;
+    this.heroSprite = heroRight;
+    this.jumping = false;
+    this.extraJump = true;
+    frameCurrent = 0;
+    translationX = 0;
+    translationY = 0;
   }
   
   this.updateHero = function(){
