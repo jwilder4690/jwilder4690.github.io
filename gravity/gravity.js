@@ -23,6 +23,8 @@ var translationX = 0;
 var translationY = 0;
 var ground = new Array(3);
 var boxes = new Array(LEVEL_LENGTH/BOX_WIDTH);
+var currentIndex;
+var modifyingBox = false;
 
 //HUD
 var HUD_textColor;
@@ -64,31 +66,33 @@ function setup() {
   for(var i = 0; i < boxes.length; i++){
     boxes[i] = new Array(0);
   }
-  boxes[0] = [
-    new Box(0, -50, BOX_WIDTH, 50, windowHeight*GROUND_LEVEL),
-    new Box(0, -500, BOX_WIDTH, 30, windowHeight*GROUND_LEVEL),
-    new Box(0,-150, BOX_WIDTH, 50, windowHeight*GROUND_LEVEL)
-  ]
-  
-  boxes[10] = [
-    new Box(600, -50, BOX_WIDTH,  50, windowHeight*GROUND_LEVEL),
-    new Box(600, -500, BOX_WIDTH,  30, windowHeight*GROUND_LEVEL),
-    new Box(600,-150, BOX_WIDTH, 50, windowHeight*GROUND_LEVEL)
-  ]
-  
-  boxes[20] = [
-    new Box(1200, -50, BOX_WIDTH,  50, windowHeight*GROUND_LEVEL),
-    new Box(1200, -500,  BOX_WIDTH, 30, windowHeight*GROUND_LEVEL),
-    new Box(1200,-150, BOX_WIDTH, 50, windowHeight*GROUND_LEVEL)
- ]
 }
 
 function mousePressed(){
+  if(gameMode == CREATE_MODE && !modifyingBox)
+  {
+    currentIndex = Math.floor((mouseX+translationX)/BOX_WIDTH);
+    for(var i = 0; i < boxes[currentIndex].length; i++){
+      if(pointCollision([mouseX+translationX, mouseY-translationY], boxes[currentIndex][i].getCoordinates())){
+        var temp = boxes[currentIndex][boxes[currentIndex].length-1];
+        boxes[currentIndex][i] = temp;
+        boxes[currentIndex] = shorten(boxes[currentIndex]);
+        modifyingBox = false;
+        return;                     
+      }
+    }
+    append(boxes[currentIndex], new Box(currentIndex*BOX_WIDTH, Math.floor((mouseY-translationY-windowHeight*GROUND_LEVEL)/BOX_WIDTH)*BOX_WIDTH, BOX_WIDTH, BOX_WIDTH, windowHeight*GROUND_LEVEL));
+    if(keys[SHIFT]){
+      modifyingBox = true;
+    }
+  }
+}
+
+function mouseReleased(){
   if(gameMode == CREATE_MODE)
   {
-    var index = Math.floor((mouseX+translationX)/BOX_WIDTH);
-     console.log("Made a new box at: "+index);
-    append(boxes[index], new Box(index*BOX_WIDTH, Math.floor((mouseY-translationY-windowHeight*GROUND_LEVEL)/BOX_WIDTH)*BOX_WIDTH, BOX_WIDTH, BOX_WIDTH, windowHeight*GROUND_LEVEL));
+    boxes[currentIndex][boxes[currentIndex].length-1].completeBox();
+    modifyingBox = false;
   }
 }
 
@@ -105,6 +109,7 @@ function keyReleased(){
 }
 
 function drawBackground(){
+  var count = 0;
   background(100);
   rectMode(CORNERS);
   for(var i = 0; i < ground.length; i++){
@@ -112,6 +117,15 @@ function drawBackground(){
   }
   for(var i = 0; i < boxes.length; i++){
     for(var j = 0; j < boxes[i].length; j++){
+      if(mouseIsPressed && !boxes[i][j].finished && modifyingBox){
+        count++;
+        console.log(count);
+        console.log("Mouse: "+(mouseY-translationY)+ " box[i:"+i+"][j:"+j+"]: "+boxes[i][j].getCoordinates()[1]);
+        if(mouseY+translationY+windowHeight*GROUND_LEVEL > boxes[i][j].getCoordinates()[3]){
+          boxes[i][j].setHeight(difference(mouseY-translationY, boxes[i][j].getCoordinates()[1]));
+        }
+        console.log(boxes[i][j].getCoordinates()[3]);
+      }
       boxes[i][j].drawBox();
     }
   }
@@ -187,7 +201,7 @@ function draw() {
     hero.applyGravity();
     var heroLocation = hero.getCoordinates();
     var index = Math.floor((hero.xPos+translationX)/BOX_WIDTH);
-    if(!hero.ghostMode && gameMode){
+    if(!hero.ghostMode){
       checkForCollisions(boxes[index], heroLocation, tempX, tempY, tempPosition);
       checkForCollisions(boxes[index+1], heroLocation, tempX, tempY, tempPosition);
       checkForCollisions(ground, heroLocation, tempX, tempY, tempPosition);
@@ -204,8 +218,11 @@ function draw() {
 
 function difference(first, second){
   return Math.abs(first - second);
+  //return 60;
 }
 
+
+//need to smooth out collisions into the vertical wall. Currently gets stuck if moving towards wall. 
 function checkForCollisions(obstacleList, heroLocation, tempX, tempY, tempPosition){
     for(var i = 0; i < obstacleList.length; i++){
       var boxLocation = obstacleList[i].getCoordinates();
@@ -290,7 +307,6 @@ function checkForCollisions(obstacleList, heroLocation, tempX, tempY, tempPositi
             translationX = tempPosition;
           }
           else console.log("Corners length of: "+corners.length+" was unexpected. Hero: "+heroLocation+" Box: "+boxLocation);
-        break;
       }
     }
 }
@@ -385,6 +401,7 @@ function checkInput(gameOver){
     else if(gameMode == PLAY_MODE){
       gameMode = CREATE_MODE;
     }
+     keys['M'.charCodeAt(0)] = false;
   }
   if(keys['R'.charCodeAt(0)]){
     hero.resetHero();
@@ -427,7 +444,7 @@ function Hero(x, y){
 
   
   this.getCoordinates = function(){
-    return [this.xPos+translationX, this.yPos-this.tall, this.xPos+this.wide+translationX, this.yPos]; 
+    return [this.xPos+translationX, this.yPos-this.tall-translationY, this.xPos+this.wide+translationX, this.yPos-translationY]; 
   }
   
   /*////////////////////////////////////////////////////////////////////////////
@@ -476,7 +493,6 @@ function Hero(x, y){
     else if(this.heroSprite == heroGhostModeLeft){
       this.heroSprite = heroLeft;
     }
-    //translationX = this.ghostPosition;
   }
   
   this.moveLeft = function(){
@@ -554,7 +570,7 @@ function Hero(x, y){
   }
   
   this.updateHero = function(){
-    //Fell off screen check
+    //Fell on screen check
     if(this.yPos-this.tall > windowHeight){
       this.gameOver();
     }
@@ -610,7 +626,21 @@ function Hero(x, y){
       if(this.yVel < this.terminalVelocity){
         this.yVel = this.terminalVelocity;
       }
-      this.yPos -= (this.yVel/this.scaleFactor);
+      var temp = this.yPos;
+      if(translationY > 0){
+        translationY += (this.yVel/this.scaleFactor)
+        if(translationY < 0){
+          translationY = 0;
+        }
+        console.log(translationY);
+      }
+      else{
+        this.yPos -= (this.yVel/this.scaleFactor);
+      }
+      if(this.yPos <= windowHeight/2){
+        this.yPos = temp;
+        translationY += (this.yVel/this.scaleFactor);
+      }
     }
   }
 }
@@ -625,6 +655,7 @@ function Box(x, y, w, h, ground){
   this.tall = h;
   this.wide = w;
   this.paint = color(200,50,50);
+  this.finished = false; 
   
   this.getCoordinates = function(){
     return [this.x, this.y+this.groundLevel, this.x+this.wide, this.y+this.tall+this.groundLevel]; 
@@ -640,10 +671,16 @@ function Box(x, y, w, h, ground){
     this.groundLevel = newGround
   }
   
-  this.changeColor = function(){
-    this.paint = color(255,0,0);
+  this.completeBox = function(){
+    this.finished = true;
   }
   
+  this.setHeight = function(value){
+    console.log("Height set to: "+value);
+    this.tall = value;
+  }
   
-  
+  this.changeColor = function(){
+    this.paint = color(255,0,0);
+  }  
 }
