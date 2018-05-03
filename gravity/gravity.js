@@ -190,7 +190,9 @@ function windowResized(){
 function draw() {
   var tempX = hero.xPos;
   var tempY = hero.yPos; 
-  var tempPosition = translationX;
+  var tempPositionX = translationX;
+  var tempPositionY = translationY;
+  
   push();
   translate(-translationX, translationY);
   drawBackground();
@@ -202,9 +204,9 @@ function draw() {
     var heroLocation = hero.getCoordinates();
     var index = Math.floor((hero.xPos+translationX)/BOX_WIDTH);
     if(!hero.ghostMode){
-      checkForCollisions(boxes[index], heroLocation, tempX, tempY, tempPosition);
-      checkForCollisions(boxes[index+1], heroLocation, tempX, tempY, tempPosition);
-      checkForCollisions(ground, heroLocation, tempX, tempY, tempPosition);
+      checkForCollisions(boxes[index], heroLocation, tempX, tempY, tempPositionX, tempPositionY);
+      checkForCollisions(boxes[index+1], heroLocation, tempX, tempY, tempPositionX, tempPositionY);
+      checkForCollisions(ground, heroLocation, tempX, tempY, tempPositionX, tempPositionY);
     }
   }
   
@@ -223,7 +225,7 @@ function difference(first, second){
 
 
 //need to smooth out collisions into the vertical wall. Currently gets stuck if moving towards wall. 
-function checkForCollisions(obstacleList, heroLocation, tempX, tempY, tempPosition){
+function checkForCollisions(obstacleList, heroLocation, tempX, tempY, tempPositionX, tempPositionY){
     for(var i = 0; i < obstacleList.length; i++){
       var boxLocation = obstacleList[i].getCoordinates();
       if(checkOverlap(heroLocation, boxLocation)){
@@ -231,21 +233,22 @@ function checkForCollisions(obstacleList, heroLocation, tempX, tempY, tempPositi
           if(corners.length == 2){
             if(corners[0] == BOTTOM_LEFT && corners[1] == TOP_LEFT){ ///left impact
               hero.xPos = tempX;
-              translationX = tempPosition;
+              translationX = tempPositionX;
             }
             else if(corners[0] == BOTTOM_RIGHT && corners[1] == TOP_RIGHT){ //right impact
               hero.xPos = tempX;
-              translationX = tempPosition;
+              translationX = tempPositionX;
             }
             else if(corners[0] == BOTTOM_LEFT && corners[1] == BOTTOM_RIGHT){ //bottom impact
               hero.yPos = boxLocation[1];
+              translationY = tempPositionY;
               hero.yVel = 0;
               hero.extraJump = true;
-              //hero.falling = false;
               hero.jumping = false;
             }
             else if(corners[0] == TOP_LEFT && corners[1] == TOP_RIGHT){ //top impact
               hero.yPos = boxLocation[3]+hero.tall;
+              translationY = tempPositionY;
               hero.yVel = 0;
             }
             else console.log("Unexpected combination of corners.");
@@ -255,46 +258,48 @@ function checkForCollisions(obstacleList, heroLocation, tempX, tempY, tempPositi
               case TOP_LEFT: 
                 if(difference(heroLocation[0],boxLocation[2]) < difference(heroLocation[1], boxLocation[3])){
                   hero.xPos = tempX;
-                  translationX = tempPosition;
+                  translationX = tempPositionX;
                 }
                 else{
                   hero.yPos = boxLocation[3]+hero.tall;
+                  translationY = tempPositionY;
                   hero.yVel = 0;
                 }
                 break;
               case TOP_RIGHT:
                 if(difference(heroLocation[2],boxLocation[0]) < difference(heroLocation[1], boxLocation[3])){
                   hero.xPos = tempX;
-                  translationX = tempPosition;
+                  translationX = tempPositionX;
                 }
                 else{
                   hero.yPos = boxLocation[3]+hero.tall;
+                  translationY = tempPositionY;
                   hero.yVel = 0;
                 }
               break;
               case BOTTOM_LEFT:
                 if(difference(heroLocation[0],boxLocation[2]) < difference(heroLocation[3], boxLocation[1])){
                   hero.xPos = tempX;
-                  translationX = tempPosition;
+                  translationX = tempPositionX;
                 }
                 else{
                   hero.yPos = boxLocation[1];
+                  translationY = tempPositionY;
                   hero.yVel = 0;
                   hero.extraJump = true;
-                  //hero.falling = false;
                   hero.jumping = false;
                 }
               break;
               case BOTTOM_RIGHT: 
                 if(difference(heroLocation[2],boxLocation[0]) < difference(heroLocation[3], boxLocation[1])){
                   hero.xPos = tempX;
-                  translationX = tempPosition;
+                  translationX = tempPositionX;
                 }
                 else{
                   hero.yPos = boxLocation[1];
+                  translationY = tempPositionY;
                   hero.yVel = 0;
                   hero.extraJump = true;
-                  //hero.falling = false;
                   hero.jumping = false;
                 }
               break;
@@ -304,7 +309,7 @@ function checkForCollisions(obstacleList, heroLocation, tempX, tempY, tempPositi
           else if(corners.length == 0){
             //side of hero overlaps with platform
             hero.xPos = tempX;
-            translationX = tempPosition;
+            translationX = tempPositionX;
           }
           else console.log("Corners length of: "+corners.length+" was unexpected. Hero: "+heroLocation+" Box: "+boxLocation);
       }
@@ -440,7 +445,7 @@ function Hero(x, y){
   this.ghost_xPos = 0;
   this.ghost_yPos = 0;
   this.ghostPosition = 0;
-
+  this.switchToTranslationY = false;
 
   
   this.getCoordinates = function(){
@@ -558,6 +563,7 @@ function Hero(x, y){
   
   this.resetHero = function(){
     gameMode = PLAY_MODE;
+    this.falling = false;
     this.alive = true;
     this.xPos = heroStart;
     this.yPos = windowHeight*GROUND_LEVEL;
@@ -623,23 +629,20 @@ function Hero(x, y){
   this.applyGravity = function(){ 
     if(this.falling){ 
       this.yVel -= 9.8; 
+      console.log(this.yVel);
       if(this.yVel < this.terminalVelocity){
         this.yVel = this.terminalVelocity;
       }
-      var temp = this.yPos;
-      if(translationY > 0){
-        translationY += (this.yVel/this.scaleFactor)
-        if(translationY < 0){
-          translationY = 0;
-        }
-        console.log(translationY);
-      }
-      else{
-        this.yPos -= (this.yVel/this.scaleFactor);
-      }
-      if(this.yPos <= windowHeight/2){
-        this.yPos = temp;
+      
+      this.yPos -= (this.yVel/this.scaleFactor);
+
+      if(this.yPos < windowHeight/2 || translationY > 0){
+        this.yPos = windowHeight/2;
         translationY += (this.yVel/this.scaleFactor);
+      }
+      
+      if(translationY < 0){
+          translationY = 0;
       }
     }
   }
