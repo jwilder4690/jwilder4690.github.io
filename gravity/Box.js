@@ -8,7 +8,7 @@ function Box(x, y, w, h, ground){
   this.groundLevel = ground;
   this.tall = h;
   this.wide = w;
-  this.paint = color(200,50,50);
+  this.paint = color(50,50,200);
   this.finished = false; 
   
   this.getCoordinates = function(){
@@ -30,11 +30,16 @@ function Box(x, y, w, h, ground){
   }
   
   this.setHeight = function(value){
-    console.log("Height set to: "+value);
+    value = Math.ceil(value/BOX_WIDTH)*BOX_WIDTH;
     this.tall = value;
   }
   
-  this.changeColor = function(){
-    this.paint = color(255,0,0);
+  this.setWidth = function(value){
+    value = Math.ceil(value/BOX_WIDTH)*BOX_WIDTH;
+    this.wide = value;
+  }
+  
+  this.changePaint = function(r,g,b){
+    this.paint = color(r,g,b);
   }  
 }

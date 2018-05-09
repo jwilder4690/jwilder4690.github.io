@@ -24,6 +24,7 @@ var ground = new Array(3);
 var boxes = new Array(LEVEL_LENGTH/BOX_WIDTH);
 var currentIndex;
 var modifyingBox = false;
+var modifyingGround = false;
 
 //HUD
 var HUD_textColor;
@@ -63,14 +64,30 @@ function setup() {
   ground[0] = new Box(0, 0, 600, 1000, windowHeight*GROUND_LEVEL);
   ground[1] = new Box(720, 0, 240, windowHeight, windowHeight*GROUND_LEVEL);
   ground[2] = new Box(1200, 0, LEVEL_LENGTH-1300, windowHeight, windowHeight*GROUND_LEVEL);
+  for(var i = 0; i < ground.length; i++){
+    ground[i].completeBox();
+    ground[i].changePaint(150,50,150);
+  }
   for(var i = 0; i < boxes.length; i++){
     boxes[i] = new Array(0);
   }
 }
 
 function mousePressed(){
-  if(gameMode == CREATE_MODE && !modifyingBox)
-  {
+  if(gameMode == CREATE_MODE){
+    
+    ///////////////////Removes if user clicks on existing ground///////////////////////////////////
+    for(var i = 0; i < ground.length; i++){
+      if(pointCollision([mouseX+camera.x, mouseY-camera.y], ground[i].getCoordinates())){
+        var temp = ground[ground.length-1];
+        ground[i] = temp;
+        ground = shorten(ground);
+        modifyingGround = false;
+        return; 
+      }
+    }
+    
+    ///////////////////////Removes if user clicks on existing box///////////////////////////////////
     currentIndex = Math.floor((mouseX+camera.x)/BOX_WIDTH);
     for(var i = 0; i < boxes[currentIndex].length; i++){
       if(pointCollision([mouseX+camera.x, mouseY-camera.y], boxes[currentIndex][i].getCoordinates())){
@@ -81,18 +98,28 @@ function mousePressed(){
         return;                     
       }
     }
-    append(boxes[currentIndex], new Box(currentIndex*BOX_WIDTH, Math.floor((mouseY-camera.y-windowHeight*GROUND_LEVEL)/BOX_WIDTH)*BOX_WIDTH, BOX_WIDTH, BOX_WIDTH, windowHeight*GROUND_LEVEL));
-    if(keys[SHIFT]){
+    
+    
+    if(mouseY-camera.y >= windowHeight*GROUND_LEVEL){
+      append(ground, new Box(currentIndex*BOX_WIDTH, 0, Math.ceil((mouseX+camera.x)/BOX_WIDTH)*BOX_WIDTH-(currentIndex*BOX_WIDTH), windowHeight, windowHeight*GROUND_LEVEL));
+      ground[ground.length-1].changePaint(150,50,150);
+      modifyingGround = true;
+    }
+    else{
+      append(boxes[currentIndex], new Box(currentIndex*BOX_WIDTH, Math.floor((mouseY-camera.y-windowHeight*GROUND_LEVEL)/BOX_WIDTH)*BOX_WIDTH, BOX_WIDTH, BOX_WIDTH, windowHeight*GROUND_LEVEL));
       modifyingBox = true;
     }
   }
 }
 
 function mouseReleased(){
-  if(gameMode == CREATE_MODE)
-  {
+  if(gameMode == CREATE_MODE && modifyingBox){
     boxes[currentIndex][boxes[currentIndex].length-1].completeBox();
     modifyingBox = false;
+  }
+  else if(gameMode == CREATE_MODE && modifyingGround){
+    ground[ground.length-1].completeBox();
+    modifyingGround = false;
   }
 }
 
@@ -113,18 +140,17 @@ function drawBackground(){
   background(100);
   rectMode(CORNERS);
   for(var i = 0; i < ground.length; i++){
+    if(mouseIsPressed && !ground[i].finished && modifyingGround){
+      ground[i].setWidth(difference(mouseX+camera.x, ground[i].getCoordinates()[0]));
+    }
     ground[i].drawBox();
   }
   for(var i = 0; i < boxes.length; i++){
     for(var j = 0; j < boxes[i].length; j++){
       if(mouseIsPressed && !boxes[i][j].finished && modifyingBox){
-        count++;
-        console.log(count);
-        console.log("Mouse: "+(mouseY-camera.y)+ " box[i:"+i+"][j:"+j+"]: "+boxes[i][j].getCoordinates()[1]);
         if(mouseY+camera.y+windowHeight*GROUND_LEVEL > boxes[i][j].getCoordinates()[3]){
           boxes[i][j].setHeight(difference(mouseY-camera.y, boxes[i][j].getCoordinates()[1]));
         }
-        console.log(boxes[i][j].getCoordinates()[3]);
       }
       boxes[i][j].drawBox();
     }
@@ -218,5 +244,4 @@ function draw() {
 
 function difference(first, second){
   return Math.abs(first - second);
-  //return 60;
 }

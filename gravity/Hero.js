@@ -95,6 +95,7 @@ function Hero(x, y){
 
     this.xPos += this.xVel;
     
+    if(this.xPos-camera.x > windowWidth/2){
       camera.panHorizontal(this.xVel);
     }
       
