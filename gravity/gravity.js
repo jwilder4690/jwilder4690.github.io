@@ -17,9 +17,11 @@ var GAME_OVER = 6;
 //Gameplay elements
 var gameMode = PLAY_MODE
 var hero; 
+var enemies = [];
+var enemyIndex = 0;
 var heroStart = 120;
 var keys = [];
-var camera;
+var gameCamera;
 var ground = new Array(3);
 var boxes = new Array(LEVEL_LENGTH/BOX_WIDTH);
 var currentIndex;
@@ -56,7 +58,7 @@ function preload(){
   Changes canvas based on size of browser window. 
 ///////////////////////////////////////////////////*/
 function setup() {
-  camera = new Camera();
+  gameCamera = new Camera();
   HUD_textColor = color(200,200,200);
   HUD_ghostMeterColor = color(200,200,255);
   createCanvas(windowWidth, windowHeight);
@@ -78,7 +80,7 @@ function mousePressed(){
     
     ///////////////////Removes if user clicks on existing ground///////////////////////////////////
     for(var i = 0; i < ground.length; i++){
-      if(pointCollision([mouseX+camera.x, mouseY-camera.y], ground[i].getCoordinates())){
+      if(pointCollision([mouseX+gameCamera.x, mouseY-gameCamera.y], ground[i].getCoordinates())){
         var temp = ground[ground.length-1];
         ground[i] = temp;
         ground = shorten(ground);
@@ -88,9 +90,9 @@ function mousePressed(){
     }
     
     ///////////////////////Removes if user clicks on existing box///////////////////////////////////
-    currentIndex = Math.floor((mouseX+camera.x)/BOX_WIDTH);
+    currentIndex = Math.floor((mouseX+gameCamera.x)/BOX_WIDTH);
     for(var i = 0; i < boxes[currentIndex].length; i++){
-      if(pointCollision([mouseX+camera.x, mouseY-camera.y], boxes[currentIndex][i].getCoordinates())){
+      if(pointCollision([mouseX+gameCamera.x, mouseY-gameCamera.y], boxes[currentIndex][i].getCoordinates())){
         var temp = boxes[currentIndex][boxes[currentIndex].length-1];
         boxes[currentIndex][i] = temp;
         boxes[currentIndex] = shorten(boxes[currentIndex]);
@@ -100,13 +102,13 @@ function mousePressed(){
     }
     
     
-    if(mouseY-camera.y >= windowHeight*GROUND_LEVEL){
-      append(ground, new Box(currentIndex*BOX_WIDTH, 0, Math.ceil((mouseX+camera.x)/BOX_WIDTH)*BOX_WIDTH-(currentIndex*BOX_WIDTH), windowHeight, windowHeight*GROUND_LEVEL));
+    if(mouseY-gameCamera.y >= windowHeight*GROUND_LEVEL){
+      append(ground, new Box(currentIndex*BOX_WIDTH, 0, Math.ceil((mouseX+gameCamera.x)/BOX_WIDTH)*BOX_WIDTH-(currentIndex*BOX_WIDTH), windowHeight, windowHeight*GROUND_LEVEL));
       ground[ground.length-1].changePaint(150,50,150);
       modifyingGround = true;
     }
     else{
-      append(boxes[currentIndex], new Box(currentIndex*BOX_WIDTH, Math.floor((mouseY-camera.y-windowHeight*GROUND_LEVEL)/BOX_WIDTH)*BOX_WIDTH, BOX_WIDTH, BOX_WIDTH, windowHeight*GROUND_LEVEL));
+      append(boxes[currentIndex], new Box(currentIndex*BOX_WIDTH, Math.floor((mouseY-gameCamera.y-windowHeight*GROUND_LEVEL)/BOX_WIDTH)*BOX_WIDTH, BOX_WIDTH, BOX_WIDTH, windowHeight*GROUND_LEVEL));
       modifyingBox = true;
     }
   }
@@ -141,21 +143,20 @@ function drawBackground(){
   rectMode(CORNERS);
   for(var i = 0; i < ground.length; i++){
     if(mouseIsPressed && !ground[i].finished && modifyingGround){
-      ground[i].setWidth(difference(mouseX+camera.x, ground[i].getCoordinates()[0]));
+      ground[i].setWidth(difference(mouseX+gameCamera.x, ground[i].getCoordinates()[0]));
     }
     ground[i].drawBox();
   }
   for(var i = 0; i < boxes.length; i++){
     for(var j = 0; j < boxes[i].length; j++){
       if(mouseIsPressed && !boxes[i][j].finished && modifyingBox){
-        if(mouseY+camera.y+windowHeight*GROUND_LEVEL > boxes[i][j].getCoordinates()[3]){
-          boxes[i][j].setHeight(difference(mouseY-camera.y, boxes[i][j].getCoordinates()[1]));
+        if(mouseY+gameCamera.y+windowHeight*GROUND_LEVEL > boxes[i][j].getCoordinates()[3]){
+          boxes[i][j].setHeight(difference(mouseY-gameCamera.y, boxes[i][j].getCoordinates()[1]));
         }
       }
       boxes[i][j].drawBox();
     }
   }
-  drawHUD();
 }
 
 function drawHUD(){
@@ -163,28 +164,28 @@ function drawHUD(){
   rectMode(CORNERS);
   stroke(200,200,200);
   strokeWeight(3);
-  rect(-10, -camera.y, LEVEL_LENGTH, windowHeight*SKY_LEVEL-camera.y);
+  rect(-10, 0, LEVEL_LENGTH, windowHeight*SKY_LEVEL);
   fill(HUD_textColor);
   textFont("Helvetica");
   textSize(30);
   textAlign(RIGHT);
   noStroke();
-  text("Health: ", 200+camera.x, windowHeight*SKY_LEVEL -80 - camera.y);
-  text("Ghost Mode: ", 200+camera.x, windowHeight*SKY_LEVEL - 40 - camera.y);
+  text("Health: ", 200, windowHeight*SKY_LEVEL -80);
+  text("Ghost Mode: ", 200, windowHeight*SKY_LEVEL - 40);
   noFill();
   stroke(HUD_ghostMeterColor);
-  rect(220+camera.x, windowHeight*SKY_LEVEL - 40 - camera.y, 220+camera.x+hero.ghostDuration*2, windowHeight*SKY_LEVEL - 60 - camera.y);
+  rect(220, windowHeight*SKY_LEVEL - 40, 220+hero.ghostDuration*2, windowHeight*SKY_LEVEL - 60);
   fill(HUD_ghostMeterColor);
-  rect(220+camera.x, windowHeight*SKY_LEVEL - 40 - camera.y, 220+camera.x+hero.ghostRemaining*2, windowHeight*SKY_LEVEL - 60 - camera.y);
+  rect(220, windowHeight*SKY_LEVEL - 40, 220+hero.ghostRemaining*2, windowHeight*SKY_LEVEL - 60);
 }
 
 function drawGrid(gridSpacing){
   stroke(0,0,0);
   for(var i = -3; i < LEVEL_HEIGHT/gridSpacing; i++){
-    line(0, windowHeight*GROUND_LEVEL + camera.y - i*gridSpacing, LEVEL_LENGTH, windowHeight*GROUND_LEVEL + camera.y - i*gridSpacing);
+    line(0, windowHeight*GROUND_LEVEL + gameCamera.y - i*gridSpacing, LEVEL_LENGTH, windowHeight*GROUND_LEVEL + gameCamera.y - i*gridSpacing);
  }
  for(var j = 0; j < LEVEL_LENGTH/gridSpacing; j++){
-   line(j*gridSpacing - camera.x, -LEVEL_HEIGHT, j*gridSpacing - camera.x, LEVEL_HEIGHT);
+   line(j*gridSpacing - gameCamera.x, -LEVEL_HEIGHT, j*gridSpacing - gameCamera.x, LEVEL_HEIGHT);
  }
 }
 
@@ -218,10 +219,14 @@ function draw() {
   var tempY = hero.yPos; 
   
   push();
-  translate(-camera.x, camera.y);
+  translate(-gameCamera.x, gameCamera.y);
   drawBackground();
   checkInput(!hero.alive);
   hero.drawHero();
+  for(var i = 0; i < enemies.length; i++){
+    enemies[i].drawEnemy();
+    enemies[i].update();
+  }
   pop(); 
     
   if(gameMode == PLAY_MODE){
@@ -240,6 +245,7 @@ function draw() {
   if(gameMode == CREATE_MODE){
     drawGrid(BOX_WIDTH);
   }
+  drawHUD();
 }
 
 function difference(first, second){

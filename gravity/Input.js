@@ -5,9 +5,11 @@ function checkInput(gameOver){
     if(keys['A'.charCodeAt(0)] || keys[LEFT_ARROW]){
       hero.moveLeft();
     }
+    
     if(keys['D'.charCodeAt(0)] || keys[RIGHT_ARROW]){
       hero.moveRight();
     }
+    
     if(keys['S'.charCodeAt(0)] || keys[DOWN_ARROW]){
       if(!hero.ghostMode){
         if(hero.ghostRemaining == hero.ghostDuration)
@@ -16,11 +18,12 @@ function checkInput(gameOver){
         }
       }
       else{
-        hero.returnToGhost();
+          hero.returnToGhost(hero.ghostInTheWall());
       }
       keys['S'.charCodeAt(0)] = false;
       keys[DOWN_ARROW] = false; 
     }
+    
     if(keys[' '.charCodeAt(0)]){
       if(!hero.jumping && !hero.ghostMode){
         hero.jump(hero.jumpHeight);
@@ -30,31 +33,37 @@ function checkInput(gameOver){
         hero.jump(hero.jumpHeight/2);
         hero.extraJump = false;
       }
+      else if(hero.ghostMode){
+        hero.jump(hero.jumpHeight/5);
+      }
     }
   }
   if(gameMode == CREATE_MODE){
     if(keys['A'.charCodeAt(0)] || keys[LEFT_ARROW]){
-      camera.x -= 10;
-      if(camera.x < 0){
-        camera.x = 0;
+      gameCamera.x -= 10;
+      if(gameCamera.x < 0){
+        gameCamera.x = 0;
       }
     }
     if(keys['D'.charCodeAt(0)] || keys[RIGHT_ARROW]){
-      if(camera.x + windowWidth < LEVEL_LENGTH){
-        camera.x += 10;
+      if(gameCamera.x + windowWidth < LEVEL_LENGTH){
+        gameCamera.x += 10;
       }
     }
     if(keys['S'.charCodeAt(0)] || keys[DOWN_ARROW]){
-      camera.y -=10;
-      if(camera.y < 0){
-        camera.y = 0;
+      gameCamera.y -=10;
+      if(gameCamera.y < 0){
+        gameCamera.y = 0;
       }
     }
     if(keys['W'.charCodeAt(0)] || keys[UP_ARROW]){
-      camera.y += 10;
+      gameCamera.y += 10;
+    }
+    if(keys['E'.charCodeAt(0)] || keys[RIGHT_ARROW]){
+      enemies[enemyIndex] = new Enemy(mouseX+gameCamera.x, mouseY+gameCamera.y, 50,0);
     }
   }
-  
+
     
   if(keys['M'.charCodeAt(0)]){
     if(gameMode == CREATE_MODE){

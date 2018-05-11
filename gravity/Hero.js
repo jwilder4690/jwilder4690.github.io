@@ -54,7 +54,7 @@ function Hero(x, y){
   
   this.drawHero = function(){   
      if(this.ghostMode && this.alive){
-       image(ghostShadow, this.ghost_xPos+this.ghostPosition, this.ghost_yPos-this.tall);
+       image(ghostShadow, this.ghost_xPos, this.ghost_yPos-this.tall);
      }
      image(this.heroSprite, this.xPos, this.yPos-this.tall);
   }
@@ -63,11 +63,12 @@ function Hero(x, y){
     this.yPos = windowHeight*GROUND_LEVEL;  
   }
   
-  this.returnToGhost = function(){
-    this.xPos = this.ghost_xPos +this.ghostPosition;
-    this.yPos = this.ghost_yPos;
+  this.returnToGhost = function(reset){
+    if(reset){
+      this.xPos = this.ghost_xPos;
+      this.yPos = this.ghost_yPos;
+    }
     this.jumping = this.ghostJumping;
-    this.ghostRemianing = 0;
     this.ghostMode = false;
     this.falling = true;
     if(this.heroSprite == heroGhostModeRight){
@@ -95,8 +96,8 @@ function Hero(x, y){
 
     this.xPos += this.xVel;
     
-    if(this.xPos-camera.x > windowWidth/2){
-      camera.panHorizontal(this.xVel);
+    if(this.xPos-gameCamera.x > windowWidth/2){
+      gameCamera.panHorizontal(this.xVel);
     }
       
     if(this.ghostMode){
@@ -119,7 +120,7 @@ function Hero(x, y){
     this.ghostJumping = this.jumping;
     this.ghost_xPos = this.xPos;
     this.ghost_yPos = this.yPos;
-    this.ghostPosition = camera.x;
+    this.ghostPosition = gameCamera.x;
     if(this.heroSprite == heroRight)
     {
       this.heroSprite = heroGhostModeRight;
@@ -142,7 +143,7 @@ function Hero(x, y){
   
   this.resetHero = function(){
     gameMode = PLAY_MODE;
-    this.falling = false;
+    this.falling = true;
     this.alive = true;
     this.xPos = heroStart;
     this.yPos = windowHeight*GROUND_LEVEL;
@@ -150,8 +151,23 @@ function Hero(x, y){
     this.jumping = false;
     this.extraJump = true;
     frameCurrent = 0;
-    camera.x = 0;
-    camera.y = 0;
+    gameCamera.x = 0;
+    gameCamera.y = 0;
+  }
+  
+  this.ghostInTheWall = function(){
+   var index = Math.floor((this.xPos)/BOX_WIDTH);
+   for(var i = 0; i < boxes[index].length; i++){
+     if(checkOverlap(this.getCoordinates(), boxes[index][i].getCoordinates())){
+       return true;
+      }
+    }
+    for(var i = 0; i < boxes[index+1].length; i++){
+      if(checkOverlap(this.getCoordinates(), boxes[index+1][i].getCoordinates())){
+        return true;
+      }
+    }
+    return false;
   }
   
   this.updateHero = function(){
@@ -172,27 +188,7 @@ function Hero(x, y){
     if(this.ghostMode){
       this.ghostRemaining--;
       if(this.ghostRemaining <= 0){
-        this.ghostMode = false;
-        this.falling = true;
-        var index = Math.floor((this.xPos)/BOX_WIDTH);
-        for(var i = 0; i < boxes[index].length; i++){
-          if(checkOverlap(this.getCoordinates(), boxes[index][i].getCoordinates())){
-            this.returnToGhost();
-            break;
-          }
-        }
-        for(var i = 0; i < boxes[index+1].length; i++){
-          if(checkOverlap(this.getCoordinates(), boxes[index+1][i].getCoordinates())){
-            this.returnToGhost();
-            break;
-          }
-        }
-        if(this.heroSprite == heroGhostModeRight){
-          this.heroSprite = heroRight;
-        }
-        else if(this.heroSprite == heroGhostModeLeft){
-          this.heroSprite = heroLeft;
-        }
+        this.returnToGhost(this.ghostInTheWall());
       }
     }
     else if(this.ghostRemaining < this.ghostDuration){
@@ -208,7 +204,6 @@ function Hero(x, y){
   this.applyGravity = function(){ 
     if(this.falling){ 
       this.yVel -= 9.8; 
-      console.log(this.yVel);
       if(this.yVel < this.terminalVelocity){
         this.yVel = this.terminalVelocity;
       }
@@ -216,7 +211,7 @@ function Hero(x, y){
       this.yPos -= (this.yVel/this.scaleFactor);
 
       if(this.yPos < windowHeight/2 && this.yVel != -9.8){
-        camera.panVertical(this.yVel/this.scaleFactor);
+        gameCamera.panVertical(this.yVel/this.scaleFactor);
       }
     }
   }
