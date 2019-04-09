@@ -31,16 +31,22 @@ nav ul{
 }
 
 h3{
-	color: #00e860;
 	padding-left:5px;
 }
 
 
-.underline{
+nav ul li{
+	background: #457EAC;
+	color: white;
+	display: inline-block;
+	list-style-type: none;
+	padding: 8px 15px 5px 15px;
+	margin:0;
+	border-radius: 5px 5px 0 0;
+}
 
-	border-width: 0px 0px 1px 0px;
-	border-color: #00e860;
-	border-style: solid;
+nav ul li a{
+	color: white;
 }
 
 
@@ -49,42 +55,34 @@ h3{
 }
 
 ul li{
-	padding: 0px 0 5px 0;
+	padding: 5px 0 5px 0;
 }
 
 
+.center{
+	color: #00E2F2;
+	padding: 0px 0;
+	text-align: center;
+}
 
-.right{
-	color: #CACFD6;
-	float: right;
+.row{
+	
+}
+
+.col{
+	background: #CACFD6;
 	border-radius: 5px;
-	border-width: 2px;
-	border-color: #CACFD6;
-	border-style: solid;
-	margin-top: 5px;
-	margin-right: 5px;
-	width:20%;
-}
-
-.left{
-	color: #CACFD6;
 	float: left;
-	width: 75%;
-}
-
-.pad{
-	padding-left:5px;
-}
-
-a{
-	color: #00e2f2;
+	width: 70%;
+	margin: 5px 15% 5px 15%;
 }
 
 img {
 	display: block;
 	border-radius: 5px;
-	width: 90%;
-	margin-left:5px;
+	margin-left: auto;
+	margin-right: auto;
+	width: 65%;
 }
 
 p{
@@ -93,9 +91,8 @@ p{
 
 footer{
 	color: white;
-	position: fixed;
 	clear:both;
+	position: fixed; 
 	bottom: 0px;
-	right: 0px;
 	
 }
